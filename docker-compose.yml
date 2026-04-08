@@ -1,0 +1,115 @@
+services:
+  # --- DATABASE ---
+  postgres:
+    image: postgres:16.6
+    container_name: ingetin-db
+    restart: always
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=100", "-c", "work_mem=8MB"]
+    env_file:
+      - ./deploy/env/infra-postgres.env
+    networks:
+      ingetin-network:
+        aliases:
+          - ingetin-db
+    # Port 5432 exposed for local management
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./deploy/data/postgres:/var/lib/postgresql/data
+      - ./deploy/infra/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.40'
+          memory: 384M
+
+  # --- CACHE ---
+  redis:
+    image: redis:7.4-alpine
+    container_name: ingetin-redis
+    restart: always
+    env_file:
+      - ./deploy/env/infra-redis.env
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    networks:
+      ingetin-network:
+        aliases:
+          - ingetin-redis
+    # Port 6379 removed for public security
+    volumes:
+      - ./deploy/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 64M
+
+  # --- APPLICATION (MONOLITH APP) ---
+  app:
+    build:
+      context: .
+      dockerfile: apps/whatsapp-reminder/whatsapp-reminder-app/Dockerfile
+    image: ingetin-app:latest
+    container_name: ingetin-app
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    networks:
+      - ingetin-network
+    environment:
+      - SERVICE_TYPE=ALL
+    env_file:
+      - ./deploy/env/whatsapp-reminder-api.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # --- OPTIONAL: CLOUDFLARE TUNNEL ---
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: ingetin-tunnel
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    networks:
+      - ingetin-network
+    depends_on:
+      - app
+    profiles:
+      - tunnel
+
+networks:
+  ingetin-network:
+    name: ingetin-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: ingetin_postgres_data
+

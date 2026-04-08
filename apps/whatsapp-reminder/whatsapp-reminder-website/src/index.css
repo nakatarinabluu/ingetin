@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+/* React Datepicker Base Styles */
+@import "react-datepicker/dist/react-datepicker.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --lunar-slate-50: #F8FAFC;
+    --lunar-slate-100: #F1F5F9;
+    --lunar-slate-200: #E2E8F0;
+    --lunar-slate-900: #0F172A;
+    
+    --wa-green: #25D366;
+    --wa-green-hover: #1eb956;
+    --wa-bg: #F0F2F5;
+  }
+
+  html {
+    background: var(--wa-bg);
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--wa-bg);
+    color: var(--lunar-slate-900);
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    width: 100vw;
+  }
+}
+
+.no-scroll {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+.wa-chat-pattern {
+  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+  background-repeat: repeat;
+  background-size: 400px;
+  opacity: 0.06;
+}
+
+/* --- CUSTOM DATEPICKER OVERRIDES --- */
+.react-datepicker-wrapper {
+    width: 100%;
+}
+
+.react-datepicker {
+    font-family: 'Outfit', sans-serif !important;
+    border: 1px solid var(--lunar-slate-200) !important;
+    border-radius: 1.5rem !important;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+    overflow: hidden !important;
+}
+
+.react-datepicker__header {
+    background-color: var(--lunar-slate-50) !important;
+    border-bottom: 1px solid var(--lunar-slate-100) !important;
+    padding-top: 1rem !important;
+}
+
+.react-datepicker__current-month {
+    color: var(--lunar-slate-900) !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.9rem !important;
+}
+
+.react-datepicker__day-name {
+    color: var(--lunar-slate-400) !important;
+    font-weight: 700 !important;
+}
+
+.react-datepicker__day--selected, 
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+    background-color: var(--wa-green) !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+}
+
+.react-datepicker__day:hover {
+    border-radius: 0.5rem !important;
+    background-color: var(--lunar-slate-100) !important;
+}
+
+.react-datepicker__time-container {
+    border-left: 1px solid var(--lunar-slate-100) !important;
+    width: 100px !important;
+}
+
+.react-datepicker__header--time {
+    padding-bottom: 12px !important;
+}
+
+.react-datepicker__time-list-item:hover {
+    background-color: var(--lunar-slate-100) !important;
+}
+
+/* Slim Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.2);
+}
+
+@layer components {
+    .lumina-card {
+        @apply bg-white border border-slate-200 rounded-[2rem] shadow-sm;
+    }
+
+    .lumina-panel {
+        @apply rounded-xl border border-slate-100 bg-white;
+    }
+
+    .lumina-input {
+        @apply w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-[#25D366] transition-all text-[15px] font-bold text-[#0F172A] outline-none shadow-sm;
+    }
+
+    .primary-button {
+        @apply bg-[#25D366] hover:bg-[#1eb956] text-white rounded-2xl font-bold py-5 px-10 transition-all active:scale-[0.98] shadow-lg shadow-green-500/10;
+    }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 10px;
+}

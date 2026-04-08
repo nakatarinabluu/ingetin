@@ -1,0 +1,14 @@
+{
+  "entryPoints": [
+    "apps/whatsapp-reminder/whatsapp-reminder-api/src",
+    "packages/database/src"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "exclude": [
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/dist/**"
+  ],
+  "plugin": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@ingetin/config",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build for config'"
+  },
+  "license": "ISC",
+  "private": true
+}

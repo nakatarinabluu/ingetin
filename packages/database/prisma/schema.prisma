@@ -1,0 +1,213 @@
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "windows", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String            @id @default(uuid())
+  username              String            @unique
+  email                 String            @unique
+  emailHash             String            @unique
+  phoneNumber           String?           @unique
+  phoneHash             String?           @unique
+  password              String            @default("")
+  firstName             String?
+  lastName              String?
+  fullName              String?
+  role                  Role              @default(USER)
+  licenseId             String?           @unique
+  isActivated           Boolean           @default(false)
+  lastLogin             DateTime?
+  refreshToken          String?           @unique
+  refreshTokenExpiresAt DateTime?
+  phoneHistory          Json?             @default("[]")
+  emailHistory          Json?             @default("[]")
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  messages              Message[]
+  reminders             Reminder[]
+  socialAccounts        SocialAccount[]
+  license               License?          @relation(fields: [licenseId], references: [id])
+
+  @@map("users")
+}
+
+model SocialAccount {
+  id           String         @id @default(uuid())
+  userId       String
+  provider     SocialProvider
+  providerId   String?        @unique
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  tokenType    String?
+  scope        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("social_accounts")
+}
+
+model Reminder {
+  id         String         @id @default(uuid())
+  title      String
+  message    String
+  schedule   DateTime
+  status     ReminderStatus @default(PENDING)
+  attempts   Int            @default(0)
+  repeat     RepeatInterval @default(NONE)
+  daysOfWeek Int[]
+  externalId String?
+  userId     String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  sentAt     DateTime?
+  deletedAt  DateTime?
+  user       User           @relation(fields: [userId], references: [id])
+
+  @@unique([userId, externalId, schedule])
+  @@index([userId])
+  @@index([schedule])
+  @@index([status])
+  @@index([status, schedule, attempts])
+  @@map("reminders")
+}
+
+model License {
+  id          String        @id @default(uuid())
+  key         String        @unique
+  targetName  String?
+  status      LicenseStatus @default(AVAILABLE)
+  userId      String?       @unique
+  createdAt   DateTime      @default(now())
+  activatedAt DateTime?
+  user        User?
+
+  @@map("licenses")
+}
+
+model Message {
+  id          String           @id @default(uuid())
+  whatsappId  String           @unique
+  from        String
+  to          String
+  body        String
+  direction   MessageDirection
+  messageType MessageType      @default(NOTIF)
+  status      MessageStatus    @default(SENT)
+  timestamp   DateTime         @default(now())
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([from])
+  @@index([to])
+  @@index([whatsappId])
+  @@index([userId, timestamp])
+  @@index([timestamp])
+  @@map("messages")
+}
+
+model UsageLog {
+  id        String    @default(uuid())
+  userId    String
+  type      UsageType
+  target    String
+  cost      Float     @default(0)
+  status    String
+  createdAt DateTime  @default(now())
+
+  @@id([id, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("usage_logs")
+}
+
+enum SocialProvider {
+  GOOGLE
+  WHATSAPP
+  DISCORD
+}
+
+enum ReminderStatus {
+  PENDING
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+  PAST
+}
+
+enum RepeatInterval {
+  NONE
+  DAILY
+  WEEKEND
+  WEEKDAY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum LicenseStatus {
+  AVAILABLE
+  USED
+  PAUSED
+  REVOKED
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  OTP
+  NOTIF
+}
+
+enum MessageStatus {
+  PENDING
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum UsageType {
+  OTP_SENT
+  NOTIF_SENT
+  INCOMING_MSG
+  REGISTRATION
+  LICENSE_ACTIVATE
+}
+
+model Conversation {
+  id                   String           @id @default(uuid())
+  phoneNumber          String           @unique
+  lastMessageBody      String
+  lastMessageTimestamp DateTime
+  lastMessageDirection MessageDirection
+  unreadCount          Int              @default(0)
+  isRegistered         Boolean          @default(false)
+  username             String?
+  userId               String?
+  updatedAt            DateTime         @updatedAt
+
+  @@index([lastMessageTimestamp])
+  @@index([userId])
+  @@map("conversations")
+}

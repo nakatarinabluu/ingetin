@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "noImplicitReturns": false
+    },
+    "include": [
+        "apps/whatsapp-reminder/whatsapp-reminder-api/src/**/*",
+        "packages/database/src/**/*"
+    ]
+}

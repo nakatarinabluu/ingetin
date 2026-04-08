@@ -1,0 +1,16 @@
+node_modules
+dist
+scripts
+*.ts
+!src/**/*.ts
+.env
+.env.local
+.turbo
+coverage
+.git
+.gitignore
+README.md
+MAINTENANCE.md
+DOCS
+vitest.config.ts
+tsconfig.json

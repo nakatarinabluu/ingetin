@@ -1,0 +1,23 @@
+{
+  "name": "@ingetin/database",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npx prisma generate && tsc",
+    "db:push": "dotenv -e ../../.env -- npx prisma db push",
+    "db:studio": "dotenv -e ../../.env -- npx prisma studio",
+    "generate": "npx prisma generate"
+  },
+    "dependencies": {
+    "@ingetin/logger": "*",
+    "@prisma/client": "^5.22.0",
+    "@types/node": "^20.10.0",
+    "redis": "^5.11.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.0.0",
+    "typescript": "^5.9.3"
+  },
+  "private": true
+}
