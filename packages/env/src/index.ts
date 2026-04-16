@@ -3,9 +3,25 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { logger } from '@ingetin/logger';
 
-// Load .env from monorepo root
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') }); // For apps
-dotenv.config({ path: path.resolve(process.cwd(), '.env') }); // Fallback for root or scripts
+import fs from 'fs';
+
+// Robustly find .env by searching upwards from process.cwd()
+function findEnvPath(startDir: string): string | null {
+    let currentDir = startDir;
+    while (currentDir !== path.parse(currentDir).root) {
+        const potentialPath = path.join(currentDir, '.env');
+        if (fs.existsSync(potentialPath)) {
+            return potentialPath;
+        }
+        currentDir = path.dirname(currentDir);
+    }
+    return null;
+}
+
+const envPath = findEnvPath(process.cwd());
+if (envPath) {
+    dotenv.config({ path: envPath });
+}
 
 export const baseSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

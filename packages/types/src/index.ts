@@ -30,6 +30,8 @@ export {
     UpdateProfileSchema, 
     OTPSendSchema, 
     OTPVerifySchema,
+    GenerateLicenseSchema,
+    SendNotificationSchema,
     WebhookPayloadSchema
 } from './schemas';
 
@@ -42,8 +44,17 @@ import {
     UpdateProfileSchema, 
     OTPSendSchema, 
     OTPVerifySchema,
+    GenerateLicenseSchema,
+    SendNotificationSchema,
     WebhookPayloadSchema
 } from './schemas';
+
+export interface HistoryEntry {
+    at: string | Date;
+    action: string;
+    old?: string;
+    new: string;
+}
 
 export interface UserDTO {
     id: string;
@@ -57,6 +68,13 @@ export interface UserDTO {
     isActivated: boolean;
     lastLogin?: Date | null;
     createdAt: Date;
+    googleRefreshToken?: string | null;
+    phoneHistory?: HistoryEntry[];
+    emailHistory?: HistoryEntry[];
+    license?: {
+        status: LicenseStatus;
+        key: string;
+    } | null;
 }
 
 export interface MessageDTO {
@@ -106,6 +124,7 @@ export interface LicenseDTO {
 export interface AuthResult {
     user: UserDTO;
     token: string;
+    refreshToken: string;
 }
 
 export interface PaginationDTO {
@@ -115,12 +134,22 @@ export interface PaginationDTO {
     totalPages: number;
 }
 
+export interface UsageDetailRecord {
+    id: string;
+    type: string;
+    target: string;
+    status: string;
+    cost: number;
+    createdAt: Date;
+}
+
 export interface StatsDTO {
     summary: {
         totalOTP: number;
         totalNotif: number;
+        [key: string]: number; // Allow additional type counts
     };
-    details: unknown[];
+    details: UsageDetailRecord[];
 }
 
 export interface ChatThreadDTO {
@@ -132,15 +161,24 @@ export interface ChatThreadDTO {
     username?: string | null;
     isRegistered: boolean;
     unreadCount: number;
+    isVerified?: boolean;
 }
 
 export interface PaginatedResponse<T> {
     items: T[];
     pagination: PaginationDTO;
+    stats?: Record<string, number>;
 }
 
 export interface ThreadHistoryDTO extends PaginatedResponse<MessageDTO> {
     phone: string;
+}
+
+export interface FinanceSummaryDTO {
+    totalIncome: number;
+    totalExpense: number;
+    remainingBudget: number;
+    monthlyBudgetLimit: number;
 }
 
 // Inferred Types from Schemas
@@ -151,6 +189,8 @@ export type ActivateLicenseInput = z.infer<typeof ActivateLicenseSchema>;
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type OTPSendInput = z.infer<typeof OTPSendSchema>;
 export type OTPVerifyInput = z.infer<typeof OTPVerifySchema>;
+export type GenerateLicenseInput = z.infer<typeof GenerateLicenseSchema>;
+export type SendNotificationInput = z.infer<typeof SendNotificationSchema>;
 export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>;
 
 // Standard API Response Structure

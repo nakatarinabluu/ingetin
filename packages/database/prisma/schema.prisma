@@ -15,7 +15,7 @@ model User {
   emailHash             String            @unique
   phoneNumber           String?           @unique
   phoneHash             String?           @unique
-  password              String            @default("")
+  password              String?
   firstName             String?
   lastName              String?
   fullName              String?
@@ -33,8 +33,43 @@ model User {
   reminders             Reminder[]
   socialAccounts        SocialAccount[]
   license               License?          @relation(fields: [licenseId], references: [id])
+  financialProfile      FinancialProfile?
+  transactions          Transaction[]
 
   @@map("users")
+}
+
+model FinancialProfile {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthlyBudgetLimit   Float    @default(0)
+  baseSalary           Float    @default(0)
+  currency             String   @default("IDR")
+  updatedAt            DateTime @updatedAt
+
+  @@map("financial_profiles")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Float
+  category    String          @default("OTHERS")
+  description String?
+  date        DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
 }
 
 model SocialAccount {

@@ -15,5 +15,8 @@
   "packageManager": "npm@10.8.2",
   "devDependencies": {
     "turbo": "2.1.2"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0"
   }
 }

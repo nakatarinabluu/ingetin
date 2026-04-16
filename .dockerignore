@@ -1,0 +1,16 @@
+node_modules
+.git
+.turbo
+dist
+build
+.next
+out
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+deploy/data
+docs
+tests
+apps/whatsapp-reminder/whatsapp-reminder-app/prisma/*.db
+apps/whatsapp-reminder/whatsapp-reminder-app/prisma/*.db-journal

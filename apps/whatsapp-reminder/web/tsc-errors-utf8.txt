@@ -1,0 +1,17 @@
+﻿src/api/finance.api.ts(6,15): error TS2724: '"../types"' has no exported member named 'FinanceSummary'. Did you mean 'FinanceSummaryDTO'?
+src/api/finance.api.ts(6,31): error TS2305: Module '"../types"' has no exported member 'FinanceProfile'.
+src/api/finance.api.ts(6,47): error TS2305: Module '"../types"' has no exported member 'PaginatedFinanceTransactions'.
+src/api/whatsapp.api.ts(36,91): error TS2339: Property 'REMINDERS' does not exist on type '{ readonly BASE: "/api/whatsapp"; readonly STATS: "/api/whatsapp/stats"; readonly MESSAGES: "/api/whatsapp/messages"; readonly CHATS: "/api/whatsapp/chats"; readonly OTP_SEND: "/api/whatsapp/otp/send"; readonly OTP_VERIFY: "/api/whatsapp/otp/verify"; }'.
+src/api/whatsapp.api.ts(39,73): error TS2339: Property 'REMINDERS' does not exist on type '{ readonly BASE: "/api/whatsapp"; readonly STATS: "/api/whatsapp/stats"; readonly MESSAGES: "/api/whatsapp/messages"; readonly CHATS: "/api/whatsapp/chats"; readonly OTP_SEND: "/api/whatsapp/otp/send"; readonly OTP_VERIFY: "/api/whatsapp/otp/verify"; }'.
+src/api/whatsapp.api.ts(42,74): error TS2339: Property 'REMINDERS' does not exist on type '{ readonly BASE: "/api/whatsapp"; readonly STATS: "/api/whatsapp/stats"; readonly MESSAGES: "/api/whatsapp/messages"; readonly CHATS: "/api/whatsapp/chats"; readonly OTP_SEND: "/api/whatsapp/otp/send"; readonly OTP_VERIFY: "/api/whatsapp/otp/verify"; }'.
+src/api/whatsapp.api.ts(45,72): error TS2339: Property 'REMINDERS' does not exist on type '{ readonly BASE: "/api/whatsapp"; readonly STATS: "/api/whatsapp/stats"; readonly MESSAGES: "/api/whatsapp/messages"; readonly CHATS: "/api/whatsapp/chats"; readonly OTP_SEND: "/api/whatsapp/otp/send"; readonly OTP_VERIFY: "/api/whatsapp/otp/verify"; }'.
+src/components/features/whatsapp/ReminderList.tsx(5,28): error TS2724: '"../../../types"' has no exported member named 'PaginationMeta'. Did you mean 'PaginationDTO'?
+src/components/parts/profile/ProfileForms.tsx(4,15): error TS2305: Module '"../../../types"' has no exported member 'InputFieldProps'.
+src/hooks/useChatHooks.ts(8,10): error TS2305: Module '"../types"' has no exported member 'ChatThreadsResponse'.
+src/hooks/useWhatsApp.ts(17,5): error TS2305: Module '"../types"' has no exported member 'Stats'.
+src/hooks/useWhatsApp.ts(18,5): error TS2724: '"../types"' has no exported member named 'ChatThread'. Did you mean 'ChatThreadDTO'?
+src/hooks/useWhatsApp.ts(20,5): error TS2305: Module '"../types"' has no exported member 'ChatThreadsResponse'.
+src/pages/Auth.tsx(52,33): error TS2339: Property 'error' does not exist on type 'ApiResponse<AuthResult>'.
+  Property 'error' does not exist on type '{ success: true; data: AuthResult; requestId?: string; }'.
+src/pages/Auth.tsx(74,33): error TS2339: Property 'error' does not exist on type 'ApiResponse<AuthResult>'.
+  Property 'error' does not exist on type '{ success: true; data: AuthResult; requestId?: string; }'.
