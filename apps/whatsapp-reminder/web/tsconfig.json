@@ -1,5 +1,11 @@
 {
     "compilerOptions": {
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noEmitOnError": true,
         "types": ["vite/client"],
         "target": "ESNext",
         "useDefineForClassFields": true,
@@ -17,7 +23,11 @@
         "noEmit": true,
         "jsx": "react-jsx",
         "module": "ESNext",
-        "moduleResolution": "bundler"
+        "moduleResolution": "bundler",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"]
+        }
     },
     "include": [
         "src"

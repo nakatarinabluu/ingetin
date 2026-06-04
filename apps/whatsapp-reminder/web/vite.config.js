@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 /**
@@ -7,9 +8,35 @@ import path from 'path'
  * Implements Code Splitting (Manual Chunks) to reduce main bundle size.
  */
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'ingetin-icon.png'],
+      manifest: {
+        name: 'Ingetin - WhatsApp Reminder',
+        short_name: 'Ingetin',
+        description: 'Asisten Pengingat WhatsApp Cerdas',
+        theme_color: '#00a884',
+        background_color: '#efeae2',
+        icons: [
+          {
+            src: 'ingetin-icon.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'ingetin-icon.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      }
+    })
+  ],
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, './src'),
       '@ingetin/types': path.resolve(__dirname, '../../../packages/types/src/index.ts')
     }
   },

@@ -1,4 +1,4 @@
-import { Prisma, User, Role } from '@prisma/client';
+import { Prisma, User, Role as PrismaRole } from '@prisma/client';
 import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -10,7 +10,7 @@ import { DomainEvent } from '../../core/events';
 import { RedisService } from '../infra/redis.service';
 import { UnauthorizedError, ConflictError, AppError, BadRequestError } from '../../core/errors/AppError';
 import { InvalidLicenseKeyError } from '../../core/errors/DomainErrors';
-import { LoginInput, RegisterInput, UserDTO } from '@ingetin/types';
+import { LoginInput, RegisterInput, UserDTO, Role as SharedRole } from '@ingetin/types';
 import { env } from '../../core/config';
 import { EncryptionService } from '../infra/encryption.service';
 
@@ -23,6 +23,10 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const ATTEMPT_COUNTER_TTL_SECONDS = 3600; // 1 hour
 /** How long (seconds) a revoked JTI is remembered (matches refresh token max life) */
 const REVOKED_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+function toSharedRole(role: PrismaRole): SharedRole {
+    return role === PrismaRole.ADMIN ? SharedRole.ADMIN : SharedRole.USER;
+}
 
 export interface AuthTokens {
     accessToken: string;
@@ -65,7 +69,7 @@ export class AuthService {
      * Generate Access and Refresh Tokens
      */
     private async generateTokens(user: Pick<User, 'id' | 'username' | 'role' | 'isActivated'> & { license?: { status: string } | null }): Promise<AuthTokens> {
-        const isAdmin = user.role === Role.ADMIN;
+        const isAdmin = user.role === PrismaRole.ADMIN;
         const effectiveActivation = isAdmin ? true : user.isActivated;
         const licenseStatus = isAdmin ? 'USED' : (user.license?.status || 'NONE');
         const jti = crypto.randomUUID();
@@ -133,12 +137,12 @@ export class AuthService {
                     id: user.id,
                     username: user.username,
                     email: user.email,
-                    role: user.role,
+                    role: toSharedRole(user.role),
                     firstName: user.firstName,
                     lastName: user.lastName,
                     phoneNumber: user.phoneNumber,
-                    isActivated: user.role === Role.ADMIN ? true : user.isActivated,
-                    licenseStatus: user.role === Role.ADMIN ? 'USED' : (user.license?.status || 'NONE'),
+                    isActivated: user.role === PrismaRole.ADMIN ? true : user.isActivated,
+                    licenseStatus: user.role === PrismaRole.ADMIN ? 'USED' : (user.license?.status || 'NONE'),
                     createdAt: user.createdAt
                 }
             });
@@ -198,7 +202,7 @@ export class AuthService {
                 password: hashedPassword,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                role: Role.USER,
+                role: PrismaRole.USER,
                 isActivated: false
             });
 
@@ -219,7 +223,7 @@ export class AuthService {
                     firstName: user.firstName || null,
                     lastName: user.lastName || null,
                     email: user.email || null,
-                    role: Role.USER,
+                    role: SharedRole.USER,
                     phoneNumber: null,
                     isActivated: false,
                     licenseStatus: 'NONE',

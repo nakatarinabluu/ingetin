@@ -1,26 +1,20 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import {
-    MessageCircle,
-    Calendar,
-    ShieldCheck,
-    Plus,
-    Settings,
-    Wallet,
-    ArrowRight,
-    Bell,
     TrendingUp,
+    ShieldCheck,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { GettingStarted } from '../../components/features/dashboard/GettingStarted';
-import { UpcomingRemindersList } from '../../components/features/dashboard/UpcomingRemindersList';
-import { FinanceSummaryCard } from '../../components/features/dashboard/FinanceSummaryCard';
-import { WhatsAppConnectModal } from '../../components/features/dashboard/WhatsAppConnectModal';
-import { useFinanceSummary } from '../../hooks/useFinanceHooks';
-import { useReminders } from '../../hooks/useReminderHooks';
-import { DASHBOARD_COPY, COMMON_COPY } from '../../constants/copy';
+import { useAuth } from '@/app/providers/AuthContext';
+import { Card, CardHeader, CardTitle, CardContent, KPICard } from '@/shared/ui';
+import { GettingStarted } from '@/widgets/dashboard-overview/GettingStarted';
+import { UpcomingRemindersList } from '@/widgets/dashboard-overview/UpcomingRemindersList';
+import { FinanceSummaryCard } from '@/widgets/dashboard-overview/FinanceSummaryCard';
+import { WhatsAppConnectModal } from '@/features/create-reminder/ui/WhatsAppConnectModal';
+import { useFinanceSummary } from '@/entities/finance/model/hooks';
+import { useReminders } from '@/entities/reminder/model/hooks';
+import { DASHBOARD_COPY } from '@/shared/config/copy';
 import { motion } from 'framer-motion';
+import { SLIDE_UP } from '@/shared/lib/motion';
+import { formatIDR, formatMillion, getSafePercent } from '@/shared/lib/format';
 
 /**
  * UserOverview — WhatsApp Official Dashboard
@@ -35,211 +29,149 @@ export default function UserOverview() {
     const isDashboardLoading = isFinanceLoading || isRemindersLoading;
     const [isConnModalOpen, setIsConnModalOpen] = useState(false);
 
-    const getTimeGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 11) return `Selamat ${COMMON_COPY.greetings.morning}`;
-        if (hour < 15) return `Selamat ${COMMON_COPY.greetings.afternoon}`;
-        if (hour < 19) return `Selamat ${COMMON_COPY.greetings.evening}`;
-        return `Selamat ${COMMON_COPY.greetings.night}`;
-    };
+    // Memoized Metrics for performance and clean JSX
+    const metrics = useMemo(() => [
+        { 
+            icon: TrendingUp, 
+            label: 'Pengeluaran', 
+            value: isDashboardLoading ? '...' : `Rp ${formatMillion(finance?.totalExpense)}`, 
+            color: '#667781' 
+        },
+        { 
+            icon: ShieldCheck, 
+            label: 'Batas Aman', 
+            value: isDashboardLoading ? '...' : `Rp ${formatMillion(finance?.remainingBudget)}`, 
+            color: '#00a884' 
+        },
+    ], [finance, isDashboardLoading]);
 
-    const onboardingSteps = [
-        { id: 'wa', completed: session?.isActivated || false },
-        { id: 'first', completed: (remindersRes?.items?.length || 0) > 0 }
-    ];
+    const safeExpensePercent = useMemo(() => 
+        getSafePercent(finance?.expensePercentage || 15), 
+    [finance]);
 
     return (
-        <div className="space-y-6 w-full text-left">
-
-            {/* ─── Header ─── */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#e9edef]">
+        <div className="w-full space-y-6 text-left">
+            
+            {/* ─── 01. WELCOME HEADER ─── */}
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-wa-border">
                 <div className="space-y-1">
-                    {/* Status pill */}
-                    <div className="inline-flex items-center gap-2 text-xs font-medium text-[#00a884] mb-2">
-                        <span className="w-2 h-2 rounded-full bg-[#00a884] animate-pulse" />
-                        {DASHBOARD_COPY.overview.badge}
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-wa-green mb-2">
+                        <ShieldCheck size={14} strokeWidth={2.5} />
+                        Identity Verified & Connected
                     </div>
-                    <h1 className="text-2xl font-bold text-[#111b21]">
-                        {getTimeGreeting()},{' '}
-                        <span className="text-[#00a884]">{session?.username}</span> 👋
+                    <h1 className="text-2xl font-bold text-wa-dark">
+                        Halo, {session?.username || 'User'} 👋
                     </h1>
-                    <p className="text-sm text-[#54656f]">
+                    <p className="text-sm text-wa-icon">
                         {DASHBOARD_COPY.overview.desc}
                     </p>
                 </div>
-
-                <div className="flex items-center gap-2.5 shrink-0">
-                    <button
-                        onClick={() => setIsConnModalOpen(true)}
-                        className="h-10 px-4 rounded-xl border border-[#e9edef] bg-white text-[#54656f] text-sm font-medium hover:bg-[#f0f2f5] transition-colors flex items-center gap-2"
-                    >
-                        <Settings size={16} strokeWidth={2} />
-                        <span className="hidden sm:inline">Pengaturan</span>
-                    </button>
-                    <Link
-                        to="/reminders?action=new"
-                        className="h-10 px-4 bg-[#00a884] text-white text-sm font-semibold rounded-xl hover:bg-[#008069] transition-colors inline-flex items-center gap-2"
-                    >
-                        <Plus size={16} strokeWidth={2.5} />
-                        Agenda Baru
-                    </Link>
-                </div>
+                
+                <button 
+                    onClick={() => setIsConnModalOpen(true)}
+                    className="h-10 px-4 bg-wa-bg text-wa-dark text-xs font-bold rounded-xl hover:bg-wa-border transition-all flex items-center gap-2 shrink-0 self-start sm:self-center"
+                >
+                    <div className="w-2 h-2 rounded-full bg-wa-green animate-pulse" />
+                    Status WA: Terhubung
+                </button>
             </header>
 
-            {/* ─── Onboarding ─── */}
-            <GettingStarted steps={onboardingSteps} />
-
-            {/* ─── Stats Row (mobile-friendly) ─── */}
+            {/* ─── 02. CORE METRICS ─── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                    {
-                        icon: Bell,
-                        label: 'Pengingat Aktif',
-                        value: remindersRes?.items?.length ?? '—',
-                        color: '#00a884',
-                    },
-                    {
-                        icon: Calendar,
-                        label: 'Jadwal Hari Ini',
-                        value: '—',
-                        color: '#128C7E',
-                    },
-                    {
-                        icon: TrendingUp,
-                        label: 'Pengeluaran Bulan Ini',
-                        value: '—',
-                        color: '#667781',
-                    },
-                    {
-                        icon: ShieldCheck,
-                        label: 'Status Enkripsi',
-                        value: 'Aman',
-                        color: '#25D366',
-                    },
-                ].map(({ icon: Icon, label, value, color }) => (
-                    <div key={label} className="bg-white border border-[#e9edef] rounded-xl p-4 shadow-wa">
-                        <div
-                            className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-                            style={{ backgroundColor: `${color}12` }}
-                        >
-                            <Icon size={18} strokeWidth={2} style={{ color }} />
-                        </div>
-                        <div className="text-xl font-bold text-[#111b21] leading-none">{isDashboardLoading ? '...' : value}</div>
-                        <div className="text-xs text-[#54656f] mt-1 font-medium">{label}</div>
-                    </div>
+                {metrics.map((item, idx) => (
+                    <KPICard 
+                        key={idx}
+                        title={item.label}
+                        value={item.value}
+                        icon={item.icon}
+                        color={item.color}
+                    />
                 ))}
             </div>
 
-            {/* ─── Main grid ─── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-                {/* Upcoming agendas */}
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="lg:col-span-8 order-2 lg:order-1"
-                >
-                    <Card className="h-full rounded-2xl border-[#e9edef] shadow-wa overflow-hidden">
-                        <CardHeader className="p-5 md:p-6 border-b border-[#e9edef] flex-row items-center justify-between mb-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[#00a884]/8 flex items-center justify-center">
-                                    <Calendar size={18} className="text-[#00a884]" strokeWidth={2} />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-[15px] font-semibold text-[#111b21]">
-                                        {DASHBOARD_COPY.overview.main_title}
-                                    </CardTitle>
-                                    <p className="text-xs text-[#54656f] mt-0.5">Notifikasi dikirim ke WhatsApp kamu</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-[#00a884] font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#00a884] animate-pulse" />
-                                Sinkron
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <UpcomingRemindersList
-                                reminders={remindersRes?.items || []}
-                                isLoading={isDashboardLoading}
-                            />
-                        </CardContent>
-                        <div className="px-6 py-4 border-t border-[#e9edef] bg-[#f0f2f5]/40">
-                            <Link
-                                to="/reminders"
-                                className="text-sm text-[#00a884] font-semibold hover:text-[#008069] transition-colors flex items-center gap-1.5"
-                            >
-                                Lihat semua agenda
-                                <ArrowRight size={14} strokeWidth={2.5} />
-                            </Link>
-                        </div>
-                    </Card>
-                </motion.div>
-
-                {/* Sidebar cards */}
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="lg:col-span-4 space-y-4 order-1 lg:order-2"
-                >
-                    {/* Finance */}
-                    <Card className="rounded-2xl border-[#e9edef] shadow-wa p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <span className="text-xs font-semibold text-[#00a884] block mb-0.5">
-                                    {DASHBOARD_COPY.overview.finance_badge}
-                                </span>
-                                <h3 className="text-[15px] font-semibold text-[#111b21]">Keuangan</h3>
-                            </div>
-                            <div className="w-9 h-9 rounded-xl bg-[#00a884]/8 flex items-center justify-center">
-                                <Wallet size={18} className="text-[#00a884]" strokeWidth={2} />
-                            </div>
-                        </div>
-                        <FinanceSummaryCard data={finance} isLoading={isDashboardLoading} />
-                        <div className="mt-4 pt-4 border-t border-[#e9edef]">
-                            <Link
-                                to="/finances"
-                                className="text-sm text-[#00a884] font-semibold hover:text-[#008069] transition-colors flex items-center gap-1.5"
-                            >
-                                Laporan lengkap <ArrowRight size={14} strokeWidth={2.5} />
-                            </Link>
-                        </div>
-                    </Card>
-
-                    {/* System Status */}
-                    <Card className="rounded-2xl border-[#e9edef] shadow-wa p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-[15px] font-semibold text-[#111b21]">
-                                {DASHBOARD_COPY.overview.system_badge}
-                            </h3>
-                            <span className="text-xs text-[#667781]">Real-time</span>
-                        </div>
-                        <div className="space-y-3">
-                            {[
-                                { icon: MessageCircle, label: 'WhatsApp', status: 'Online' },
-                                { icon: ShieldCheck, label: 'Enkripsi', status: 'Aktif' },
-                            ].map(({ icon: Icon, label, status }) => (
-                                <div key={label} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                        <Icon size={16} className="text-[#54656f]" strokeWidth={2} />
-                                        <span className="text-sm text-[#111b21] font-medium">{label}</span>
+            {/* ─── 03. MAIN DASHBOARD CONTENT ─── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Left Column: Intelligence & Reports */}
+                <div className="lg:col-span-8 space-y-6">
+                    <motion.div {...SLIDE_UP}>
+                        <Card className="rounded-3xl border-wa-border shadow-wa overflow-hidden">
+                            <CardHeader className="p-6 md:p-8 border-b border-wa-border/60 bg-[#fcfcfc]">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-lg font-bold text-wa-dark">Saku Digital</CardTitle>
+                                        <p className="text-xs text-wa-icon font-medium">Laporan kecerdasan finansial bulan ini.</p>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#00a884]" />
-                                        <span className="text-xs text-[#00a884] font-medium">{status}</span>
+                                    <div className="px-3 py-1 rounded-full bg-wa-green/10 text-wa-green text-[10px] font-black uppercase tracking-widest border border-wa-green/20">
+                                        {finance?.status || 'OPTIMAL'}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                        <p className="text-xs text-[#667781] mt-4 pt-3 border-t border-[#e9edef]">
-                            {DASHBOARD_COPY.overview.system_status}
-                        </p>
-                    </Card>
-                </motion.div>
+                            </CardHeader>
+                            <CardContent className="p-6 md:p-8 bg-white">
+                                <div className="flex flex-col md:flex-row gap-8 items-start">
+                                    <div className="w-full md:w-1/3 flex flex-col items-center justify-center p-6 bg-wa-bg rounded-2xl border border-wa-border/40 relative group overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:rotate-12 transition-transform">
+                                            <TrendingUp size={60} />
+                                        </div>
+                                        <div className="relative z-10 text-center">
+                                            <p className="text-[10px] font-bold text-wa-muted uppercase mb-1">Sisa Anggaran</p>
+                                            <h4 className="text-xl font-black text-wa-dark tracking-tighter">
+                                                Rp {formatIDR(finance?.remainingBudget)}
+                                            </h4>
+                                        </div>
+
+                                        <div className="mt-6 relative w-24 h-24 flex items-center justify-center">
+                                            <svg className="w-full h-full transform -rotate-90">
+                                                <circle className="text-wa-border" strokeWidth="4" stroke="currentColor" fill="none" r="36" cx="48" cy="48" />
+                                                <motion.path 
+                                                    initial={{ pathLength: 0 }}
+                                                    animate={{ pathLength: (100 - safeExpensePercent) / 100 }}
+                                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                                    className="text-wa-green" 
+                                                    strokeWidth="4" 
+                                                    strokeLinecap="round" 
+                                                    stroke="currentColor" 
+                                                    fill="none" 
+                                                    d="M48 12 a 36 36 0 0 1 0 72 a 36 36 0 0 1 0 -72" 
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="text-[10px] font-black text-wa-dark">{Math.max(0, 100 - safeExpensePercent)}%</span>
+                                                <span className="text-[7px] font-bold text-wa-muted uppercase">Safe</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 w-full">
+                                        <div className="mb-4">
+                                            <p className="text-xs font-bold text-wa-dark">Uang riil: <span className="text-wa-green">Rp {formatIDR(finance?.balance)}</span></p>
+                                            <p className="text-[10px] text-wa-icon mt-1">Anggaran disesuaikan berdasarkan saldo nyata Anda.</p>
+                                        </div>
+                                        
+                                        <FinanceSummaryCard data={finance || null} isLoading={isFinanceLoading} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <GettingStarted />
+                </div>
+
+                {/* Right Column: Dynamic Feed */}
+                <div className="lg:col-span-4 space-y-6">
+                    <UpcomingRemindersList 
+                        reminders={remindersRes?.items || []} 
+                        isLoading={isRemindersLoading} 
+                    />
+                </div>
             </div>
 
-            <WhatsAppConnectModal isOpen={isConnModalOpen} onClose={() => setIsConnModalOpen(false)} session={session} />
+            <WhatsAppConnectModal 
+                isOpen={isConnModalOpen} 
+                onClose={() => setIsConnModalOpen(false)} 
+                session={session}
+            />
         </div>
     );
 }

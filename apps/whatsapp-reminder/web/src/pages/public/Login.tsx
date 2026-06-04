@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { AuthAPI } from '../../api/auth.api';
+import { useState } from 'react';
+import { useAuth } from '@/app/providers/AuthContext';
+import { AuthAPI } from '@/entities/user/api';
 import { LoginInput } from '@ingetin/types';
-import { LoginForm } from '../../components/features/auth/LoginForm';
-import { AuthBranding } from '../../components/features/auth/AuthBranding';
-import { AlertCircle, ArrowLeft, MessageCircle } from 'lucide-react';
-import { AUTH_COPY, COMMON_COPY, BRAND_COPY } from '../../constants/copy';
+import { LoginForm } from '@/features/auth-form/ui/LoginForm';
+import { AuthBranding } from '@/features/auth-form/ui/AuthBranding';
+import { AlertCircle, MessageCircle } from 'lucide-react';
+import { AUTH_COPY, BRAND_COPY } from '@/shared/config/copy';
 import { motion } from 'framer-motion';
 import { AxiosError } from 'axios';
 
@@ -25,7 +24,11 @@ export default function Login() {
         try {
             const res = await AuthAPI.login(data);
             if (res.data.success) {
-                login(res.data.data.user);
+                // Pass the whole user object and the token
+                login({
+                    ...res.data.data.user,
+                    token: res.data.data.token
+                });
             }
         } catch (err: unknown) {
             const error = err as AxiosError<{ error: string }>;
@@ -36,14 +39,14 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5] flex flex-col items-center justify-center p-5">
+        <div className="min-h-screen bg-wa-bg flex flex-col items-center justify-center p-5">
 
             {/* Card */}
             <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[900px] bg-white rounded-2xl border border-[#e9edef] shadow-wa-md flex flex-col lg:flex-row overflow-hidden min-h-[560px]"
+                className="w-full max-w-[900px] bg-white rounded-2xl border border-wa-border shadow-wa-md flex flex-col lg:flex-row overflow-hidden min-h-[560px]"
             >
                 {/* Left branding panel — desktop only */}
                 <div className="hidden lg:block lg:w-[360px] shrink-0">
@@ -55,15 +58,15 @@ export default function Login() {
 
                     {/* Mobile brand header */}
                     <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-                        <div className="w-8 h-8 rounded-lg bg-[#00a884] flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-wa-green flex items-center justify-center">
                             <MessageCircle size={17} className="text-white" strokeWidth={2} />
                         </div>
-                        <span className="font-bold text-[16px] text-[#111b21]">{BRAND_COPY.name}</span>
+                        <span className="font-bold text-[16px] text-wa-dark">{BRAND_COPY.name}</span>
                     </div>
 
                     <div className="mb-7">
-                        <h1 className="text-2xl font-bold text-[#111b21] mb-1.5">{AUTH_COPY.login.title}</h1>
-                        <p className="text-sm text-[#54656f]">{AUTH_COPY.login.desc}</p>
+                        <h1 className="text-2xl font-bold text-wa-dark mb-1.5">{AUTH_COPY.login.title}</h1>
+                        <p className="text-sm text-wa-icon">{AUTH_COPY.login.desc}</p>
                     </div>
 
                     {/* Error */}
@@ -80,25 +83,11 @@ export default function Login() {
 
                     <LoginForm onLogin={handleLogin} loading={loading} />
 
-                    <div className="mt-6 pt-6 border-t border-[#e9edef] flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <Link
-                            to="/forgot-password"
-                            className="text-sm text-[#00a884] hover:text-[#008069] font-medium transition-colors"
-                        >
-                            {AUTH_COPY.login.forgot}
-                        </Link>
-                        <p className="text-sm text-[#54656f]">
-                            Belum punya akun?{' '}
-                            <Link to="/register" className="text-[#00a884] font-semibold hover:text-[#008069] transition-colors">
-                                Daftar sekarang
-                            </Link>
-                        </p>
-                    </div>
                 </div>
             </motion.div>
 
             {/* Footer note */}
-            <p className="mt-6 text-xs text-[#667781] text-center">
+            <p className="mt-6 text-xs text-wa-muted text-center">
                 {AUTH_COPY.branding.footer}
             </p>
         </div>

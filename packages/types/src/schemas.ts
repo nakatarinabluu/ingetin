@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { RepeatInterval } from '@prisma/client';
 
 /**
- * 🧸 INGETIN - SHARED SCHEMAS (v8.0)
+ * 🧸 INGETIN - SHARED SCHEMAS (v1.0)
  * Standardized validation for both Frontend and Backend.
  * Language: Indonesian (Friendly).
  */
@@ -27,13 +27,19 @@ export const RegisterSchema = z.object({
     lastName: z.string().min(2, "Nama belakang minimal 2 huruf ya")
 });
 
+/**
+ * 🔁 REPEAT INTERVAL ENUM (Zod wrapper untuk Prisma enum)
+ * Dipakai di ReminderSchema dan bisa di-import oleh bagian lain.
+ */
+export const RepeatIntervalEnum = z.nativeEnum(RepeatInterval);
+
 export const ReminderSchema = z.object({
     title: z.string().min(1, "Judul pengingat jangan kosong ya").max(100),
     message: z.string().min(1, "Isi pesan jangan kosong ya").max(1000),
     schedule: z.string().refine((val) => !isNaN(Date.parse(val)), {
         message: "Format tanggalnya salah nih"
     }),
-    repeat: z.nativeEnum(RepeatInterval).optional().default(RepeatInterval.NONE),
+    repeat: RepeatIntervalEnum.optional().default('NONE'),
     daysOfWeek: z.array(z.number().int().min(0).max(6)).optional().default([])
 });
 

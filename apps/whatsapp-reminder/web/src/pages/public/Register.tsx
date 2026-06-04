@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { AuthAPI } from '../../api/auth.api';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/providers/AuthContext';
+import { AuthAPI } from '@/entities/user/api';
 import { RegisterInput } from '@ingetin/types';
-import { RegisterForm } from '../../components/features/auth/RegisterForm';
-import { AuthBranding } from '../../components/features/auth/AuthBranding';
-import { PolicyModals, type PolicyType } from '../../components/features/auth/PolicyModals';
+import { RegisterForm } from '@/features/auth-form/ui/RegisterForm';
+import { AuthBranding } from '@/features/auth-form/ui/AuthBranding';
+import { PolicyModals, type PolicyType } from '@/features/auth-form/ui/PolicyModals';
 import { AlertCircle, MessageCircle } from 'lucide-react';
-import { AUTH_COPY, BRAND_COPY } from '../../constants/copy';
+import { AUTH_COPY, BRAND_COPY } from '@/shared/config/copy';
 import { motion } from 'framer-motion';
 import { AxiosError } from 'axios';
 
@@ -28,7 +28,8 @@ export default function Register() {
         try {
             const res = await AuthAPI.register(data);
             if (res.data.success) {
-                login(res.data.data.user);
+                // AuthResult contains { token, user } — pass the full object
+                login(res.data.data);
                 navigate('/activate', { replace: true });
             }
         } catch (err: unknown) {
@@ -40,14 +41,14 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5] flex flex-col items-center justify-center p-5">
+        <div className="min-h-screen bg-wa-bg flex flex-col items-center justify-center p-5">
 
             {/* Card */}
             <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[900px] bg-white rounded-2xl border border-[#e9edef] shadow-wa-md flex flex-col lg:flex-row overflow-hidden"
+                className="w-full max-w-[900px] bg-white rounded-2xl border border-wa-border shadow-wa-md flex flex-col lg:flex-row overflow-hidden"
             >
                 {/* Left branding panel — desktop only */}
                 <div className="hidden lg:block lg:w-[360px] shrink-0">
@@ -59,15 +60,15 @@ export default function Register() {
 
                     {/* Mobile brand header */}
                     <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-                        <div className="w-8 h-8 rounded-lg bg-[#00a884] flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-wa-green flex items-center justify-center">
                             <MessageCircle size={17} className="text-white" strokeWidth={2} />
                         </div>
-                        <span className="font-bold text-[16px] text-[#111b21]">{BRAND_COPY.name}</span>
+                        <span className="font-bold text-[16px] text-wa-dark">{BRAND_COPY.name}</span>
                     </div>
 
                     <div className="mb-7">
-                        <h1 className="text-2xl font-bold text-[#111b21] mb-1.5">{AUTH_COPY.register.title}</h1>
-                        <p className="text-sm text-[#54656f]">{AUTH_COPY.register.desc}</p>
+                        <h1 className="text-2xl font-bold text-wa-dark mb-1.5">{AUTH_COPY.register.title}</h1>
+                        <p className="text-sm text-wa-icon">{AUTH_COPY.register.desc}</p>
                     </div>
 
                     {/* Error */}
@@ -88,19 +89,11 @@ export default function Register() {
                         setActivePolicy={setActivePolicy}
                     />
 
-                    <div className="mt-6 pt-6 border-t border-[#e9edef] flex items-center justify-center">
-                        <p className="text-sm text-[#54656f]">
-                            Sudah punya akun?{' '}
-                            <Link to="/login" className="text-[#00a884] font-semibold hover:text-[#008069] transition-colors">
-                                Masuk di sini
-                            </Link>
-                        </p>
-                    </div>
                 </div>
             </motion.div>
 
             {/* Footer note */}
-            <p className="mt-6 text-xs text-[#667781] text-center">
+            <p className="mt-6 text-xs text-wa-muted text-center">
                 {AUTH_COPY.branding.footer}
             </p>
 

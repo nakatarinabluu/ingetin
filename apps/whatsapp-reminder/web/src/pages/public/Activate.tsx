@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, ShieldAlert, LogOut, ArrowRight, Sparkles } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { AuthAPI } from '../../api/auth.api';
+import { ShieldAlert, LogOut, Sparkles, MessageCircle } from 'lucide-react';
+import { useAuth } from '@/app/providers/AuthContext';
+import { AuthAPI } from '@/entities/user/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '../../components/ui/Button';
-import { Typography } from '../../components/ui/Typography';
-import { AuthBranding } from '../../components/features/auth/AuthBranding';
-import { FADE_IN, SCALE_IN, SLIDE_UP } from '../../utils/motion';
+import { AuthBranding } from '@/features/auth-form/ui/AuthBranding';
 import { AxiosError } from 'axios';
-import { AUTH_COPY, BRAND_COPY, COMMON_COPY } from '../../constants/copy';
+import { AUTH_COPY, BRAND_COPY } from '@/shared/config/copy';
 
 /**
- * 🚀 THE OFFICIAL WHATSAPP WEB STYLE ACTIVATE
+ * Activate — WhatsApp Official Style
  */
 export default function Activate() {
     const { session, logout, updateSession } = useAuth();
@@ -34,7 +31,7 @@ export default function Activate() {
 
         setLoading(true);
         setErrorMessage('');
-        
+
         try {
             await AuthAPI.activate({ code: code.toUpperCase() });
             setSuccess(true);
@@ -50,83 +47,120 @@ export default function Activate() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5] relative flex flex-col items-center justify-center p-4">
-            {/* WHATSAPP GREEN STRIP */}
-            <div className="wa-header-strip" />
+        <div className="min-h-screen bg-wa-bg flex flex-col items-center justify-center p-5">
 
-            <div className="w-full max-w-[1000px] bg-white shadow-wa rounded-sm flex flex-col lg:flex-row min-h-[500px] lg:min-h-[700px] relative z-10">
-                <div className="lg:w-[400px] border-r border-gray-100 hidden lg:block">
+            {/* Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full max-w-[900px] bg-white rounded-2xl border border-wa-border shadow-wa-md flex flex-col lg:flex-row overflow-hidden min-h-[560px]"
+            >
+                {/* Left branding panel — desktop only */}
+                <div className="hidden lg:block lg:w-[360px] shrink-0">
                     <AuthBranding activeTab="login" />
                 </div>
 
-                <div className="flex-1 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
-                    <div className="max-w-md mx-auto lg:mx-0 w-full space-y-12">
-                        <motion.div {...SLIDE_UP} className="space-y-3">
-                            <Typography variant="h1" className="text-3xl font-light text-[#41525d]">{AUTH_COPY.activate.title}</Typography>
-                            <Typography variant="p" className="text-[#667781] font-medium">{AUTH_COPY.activate.desc}</Typography>
-                        </motion.div>
+                {/* Right — Form */}
+                <div className="flex-1 flex flex-col justify-center p-8 md:p-12">
 
-                        <AnimatePresence mode="wait">
-                            {success ? (
-                                <motion.div 
-                                    key="success"
-                                    {...SCALE_IN}
-                                    className="p-10 rounded-2xl bg-[#dcf8c6] border border-[#00a884]/10 flex flex-col items-center text-center gap-6 py-16"
-                                >
-                                    <div className="w-16 h-16 bg-[#00a884] rounded-full flex items-center justify-center text-white">
-                                        <Sparkles size={32} />
-                                    </div>
+                    {/* Mobile brand header */}
+                    <div className="flex items-center gap-2.5 mb-8 lg:hidden">
+                        <div className="w-8 h-8 rounded-lg bg-wa-green flex items-center justify-center">
+                            <MessageCircle size={17} className="text-white" strokeWidth={2} />
+                        </div>
+                        <span className="font-bold text-[16px] text-wa-dark">{BRAND_COPY.name}</span>
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {success ? (
+                            <motion.div
+                                key="success"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col items-center text-center gap-5 py-8"
+                            >
+                                <div className="w-16 h-16 bg-wa-green-light rounded-2xl flex items-center justify-center text-wa-green">
+                                    <Sparkles size={32} />
+                                </div>
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-bold text-wa-dark">{AUTH_COPY.activate.success_title}</h2>
+                                    <p className="text-sm text-wa-icon">{AUTH_COPY.activate.success_desc}</p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="form"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-7 w-full max-w-md"
+                            >
+                                <div>
+                                    <h1 className="text-2xl font-bold text-wa-dark mb-1.5">{AUTH_COPY.activate.title}</h1>
+                                    <p className="text-sm text-wa-icon">{AUTH_COPY.activate.desc}</p>
+                                </div>
+
+                                {errorMessage && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-start gap-3"
+                                    >
+                                        <ShieldAlert size={17} className="shrink-0 mt-0.5 text-red-400" />
+                                        <span>{errorMessage}</span>
+                                    </motion.div>
+                                )}
+
+                                <form onSubmit={handleActivate} className="space-y-6">
                                     <div className="space-y-2">
-                                        <Typography variant="h2" className="text-2xl font-bold text-[#111b21]">{AUTH_COPY.activate.success_title}</Typography>
-                                        <Typography variant="p" className="text-[#667781] text-xs font-bold uppercase tracking-widest leading-relaxed">
-                                            {AUTH_COPY.activate.success_desc}
-                                        </Typography>
-                                    </div>
-                                </motion.div>
-                            ) : (
-                                <form onSubmit={handleActivate} className="space-y-12">
-                                    {errorMessage && (
-                                        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm font-medium flex items-start gap-3">
-                                            <ShieldAlert size={18} className="shrink-0" />
-                                            <span>{errorMessage}</span>
-                                        </motion.div>
-                                    )}
-
-                                    <div className="space-y-3 text-center lg:text-left">
-                                        <input 
-                                            required 
-                                            autoFocus 
-                                            type="text" 
-                                            placeholder={AUTH_COPY.activate.input_placeholder} 
-                                            value={code} 
+                                        <label className="text-sm font-semibold text-wa-dark">
+                                            {AUTH_COPY.activate.input_placeholder}
+                                        </label>
+                                        <input
+                                            required
+                                            autoFocus
+                                            type="text"
+                                            placeholder="XXXX"
+                                            value={code}
                                             onChange={e => setCode(e.target.value.toUpperCase())}
-                                            className="w-full bg-[#f0f2f5] border border-gray-200 focus:border-[#00a884] focus:bg-white text-center text-3xl font-bold tracking-[0.2em] text-[#111b21] placeholder:text-gray-300 py-10 outline-none transition-all uppercase rounded-lg"
+                                            className="w-full bg-wa-bg border border-wa-border focus:border-wa-green focus:bg-white focus:ring-2 focus:ring-wa-green/10 text-center text-3xl font-bold tracking-[0.25em] text-wa-dark placeholder:text-wa-border py-6 outline-none transition-all uppercase rounded-xl"
+                                            maxLength={8}
                                         />
-                                        <Typography variant="small" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{AUTH_COPY.activate.input_footer}</Typography>
+                                        <p className="text-xs text-wa-muted text-center">{AUTH_COPY.activate.input_footer}</p>
                                     </div>
 
-                                    <div className="space-y-6">
-                                        <Button 
-                                            type="submit" 
-                                            isLoading={loading} 
-                                            className="w-full h-14 bg-[#00a884] hover:bg-[#008f72] text-white rounded-full font-bold text-lg"
+                                    <div className="space-y-4">
+                                        <button
+                                            type="submit"
+                                            disabled={loading || code.length < 4}
+                                            className="w-full h-12 bg-wa-green hover:bg-wa-green-dark text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
-                                            {AUTH_COPY.activate.submit}
-                                        </Button>
-                                        <button 
-                                            type="button" 
-                                            onClick={logout} 
-                                            className="w-full flex items-center justify-center gap-2.5 text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                                            {loading ? (
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                AUTH_COPY.activate.submit
+                                            )}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={logout}
+                                            className="w-full flex items-center justify-center gap-2 text-xs font-semibold text-wa-muted hover:text-red-500 transition-colors"
                                         >
-                                            <LogOut size={14} /> {AUTH_COPY.activate.logout}
+                                            <LogOut size={14} />
+                                            {AUTH_COPY.activate.logout}
                                         </button>
                                     </div>
                                 </form>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </div>
+            </motion.div>
+
+            <p className="mt-6 text-xs text-wa-muted text-center">
+                {AUTH_COPY.branding.footer}
+            </p>
         </div>
     );
 }

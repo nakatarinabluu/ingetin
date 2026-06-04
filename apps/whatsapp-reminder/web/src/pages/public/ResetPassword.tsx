@@ -4,14 +4,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Typography } from '../../components/ui/Typography';
-import { AuthBranding } from '../../components/features/auth/AuthBranding';
-import { ShieldCheck, Lock, ArrowLeft } from 'lucide-react';
+import { AuthBranding } from '@/features/auth-form/ui/AuthBranding';
+import { ShieldCheck, Lock, ArrowLeft, MessageCircle, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { FADE_IN } from '../../utils/motion';
-import { cn } from '../../utils/tw.utils';
+import { cn } from '@/shared/lib/tw.utils';
+import { BRAND_COPY } from '@/shared/config/copy';
 
 const ResetSchema = z.object({
     password: z.string()
@@ -28,16 +25,17 @@ const ResetSchema = z.object({
 type ResetFormData = z.infer<typeof ResetSchema>;
 
 /**
- * 🚀 THE OFFICIAL WHATSAPP WEB STYLE RESET PASSWORD
+ * ResetPassword — WhatsApp Official Style
  */
 export default function ResetPassword() {
-    const [searchParams] = useSearchParams();
-    const token = searchParams.get('token');
+    useSearchParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [showPass, setShowPass] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
-        document.title = "Ingetin — Atur Ulang Kata Sandi";
+        document.title = "Atur Ulang Kata Sandi — Ingetin";
     }, []);
 
     const {
@@ -55,10 +53,10 @@ export default function ResetPassword() {
 
     const handleNoSpace = (e: React.FormEvent<HTMLInputElement>, fieldName: keyof ResetFormData) => {
         const value = e.currentTarget.value.replace(/\s/g, '');
-        setValue(fieldName, value as any, { shouldValidate: true });
+        setValue(fieldName, value, { shouldValidate: true });
     };
 
-    const onSubmit = async (data: ResetFormData) => {
+    const onSubmit = async (_data: ResetFormData) => {
         setLoading(true);
         await new Promise(resolve => setTimeout(resolve, 2000));
         toast.success("Berhasil", {
@@ -69,87 +67,150 @@ export default function ResetPassword() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5] relative flex flex-col items-center justify-center p-4">
-            {/* WHATSAPP GREEN STRIP */}
-            <div className="wa-header-strip" />
+        <div className="min-h-screen bg-wa-bg flex flex-col items-center justify-center p-5">
 
-            <motion.div 
-                {...FADE_IN} 
-                className="w-full max-w-[1000px] bg-white shadow-wa rounded-sm flex flex-col lg:flex-row min-h-[500px] lg:min-h-[650px] relative z-10"
+            {/* Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full max-w-[900px] bg-white rounded-2xl border border-wa-border shadow-wa-md flex flex-col lg:flex-row overflow-hidden min-h-[540px]"
             >
-                {/* BRANDING */}
-                <div className="lg:w-[400px] border-r border-gray-100 hidden lg:block">
+                {/* Left branding — desktop only */}
+                <div className="hidden lg:block lg:w-[360px] shrink-0">
                     <AuthBranding activeTab="forgot-password" />
                 </div>
 
-                {/* FORM AREA */}
-                <div className="flex-1 p-8 md:p-12 lg:p-16 flex flex-col justify-center">
-                    <div className="mb-8 text-left">
-                        <Link to="/login" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#00a884] transition-colors font-bold text-sm">
-                            <ArrowLeft size={16} />
-                            Batal
+                {/* Right — Form */}
+                <div className="flex-1 flex flex-col justify-center p-8 md:p-12">
+
+                    {/* Mobile brand header */}
+                    <div className="flex items-center gap-2.5 mb-8 lg:hidden">
+                        <div className="w-8 h-8 rounded-lg bg-wa-green flex items-center justify-center">
+                            <MessageCircle size={17} className="text-white" strokeWidth={2} />
+                        </div>
+                        <span className="font-bold text-[16px] text-wa-dark">{BRAND_COPY.name}</span>
+                    </div>
+
+                    {/* Back link */}
+                    <div className="mb-7">
+                        <Link
+                            to="/login"
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-wa-icon hover:text-wa-green transition-colors"
+                        >
+                            <ArrowLeft size={16} strokeWidth={2.5} />
+                            Kembali ke Masuk
                         </Link>
                     </div>
 
-                    <div className="max-w-md mx-auto lg:mx-0 w-full space-y-10 text-left">
-                        <div className="space-y-3">
-                            <Typography variant="h1" className="text-3xl font-light text-[#41525d]">Buat Sandi Baru</Typography>
-                            <Typography variant="p" className="text-[#667781] font-medium leading-relaxed">
-                                Pastikan kata sandi baru Anda aman dan mudah Anda ingat.
-                            </Typography>
+                    <div className="mb-7">
+                        <h1 className="text-2xl font-bold text-wa-dark mb-1.5">Buat Kata Sandi Baru</h1>
+                        <p className="text-sm text-wa-icon">
+                            Pastikan kata sandi baru Anda aman dan mudah diingat.
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+                        {/* Password field */}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-wa-dark">Kata Sandi Baru</label>
+                            <div className="relative">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wa-icon">
+                                    <Lock size={16} />
+                                </div>
+                                <input
+                                    type={showPass ? 'text' : 'password'}
+                                    placeholder="••••••••"
+                                    className={cn(
+                                        "w-full h-11 bg-wa-bg border rounded-xl pl-10 pr-10 text-sm text-wa-dark placeholder:text-[#adb5bd] focus:outline-none focus:bg-white focus:ring-2 transition-all",
+                                        errors.password
+                                            ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                                            : "border-wa-border focus:border-wa-green focus:ring-wa-green/10"
+                                    )}
+                                    {...register('password', { onChange: (e) => handleNoSpace(e, 'password') })}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPass(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-wa-icon hover:text-wa-dark"
+                                >
+                                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>
+                            )}
+                            {/* Hints */}
+                            <div className="flex gap-4 pt-1">
+                                <ValidationHint active={(password || '').length >= 8} text="Min. 8 Karakter" />
+                                <ValidationHint active={/[A-Z]/.test(password || '') && /[0-9]/.test(password || '')} text="Huruf & Angka" />
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <Input 
-                                        label="Kata Sandi Baru" 
-                                        type="password"
-                                        placeholder="••••••••"
-                                        error={errors.password?.message}
-                                        {...register('password', { onChange: (e) => handleNoSpace(e, 'password') })}
-                                        leftIcon={<Lock size={18} className="text-gray-400" />}
-                                    />
-                                    <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
-                                        <ValidationHint active={(password || "").length >= 8} text="Min. 8 Karakter" />
-                                        <ValidationHint active={/[A-Z]/.test(password || "") && /[0-9]/.test(password || "")} text="Huruf & Angka" />
-                                    </div>
+                        {/* Confirm Password field */}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-wa-dark">Konfirmasi Kata Sandi</label>
+                            <div className="relative">
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wa-icon">
+                                    <ShieldCheck size={16} />
                                 </div>
-
-                                <Input 
-                                    label="Konfirmasi Kata Sandi" 
-                                    type="password" 
+                                <input
+                                    type={showConfirm ? 'text' : 'password'}
                                     placeholder="••••••••"
-                                    error={errors.confirmPassword?.message}
+                                    className={cn(
+                                        "w-full h-11 bg-wa-bg border rounded-xl pl-10 pr-10 text-sm text-wa-dark placeholder:text-[#adb5bd] focus:outline-none focus:bg-white focus:ring-2 transition-all",
+                                        errors.confirmPassword
+                                            ? "border-red-300 focus:ring-red-100 focus:border-red-400"
+                                            : "border-wa-border focus:border-wa-green focus:ring-wa-green/10"
+                                    )}
                                     {...register('confirmPassword', { onChange: (e) => handleNoSpace(e, 'confirmPassword') })}
-                                    leftIcon={<ShieldCheck size={18} className="text-gray-400" />}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirm(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-wa-icon hover:text-wa-dark"
+                                >
+                                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
                             </div>
+                            {errors.confirmPassword && (
+                                <p className="text-xs text-red-500 font-medium">{errors.confirmPassword.message}</p>
+                            )}
+                        </div>
 
-                            <Button 
+                        <div className="pt-2">
+                            <button
                                 type="submit"
-                                isLoading={loading}
-                                disabled={!isValid}
-                                className="w-full h-14 bg-[#00a884] hover:bg-[#008f72] text-white rounded-full font-bold text-lg shadow-sm"
+                                disabled={!isValid || loading}
+                                className="w-full h-12 bg-wa-green hover:bg-wa-green-dark text-white font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-[15px]"
                             >
-                                Perbarui Kata Sandi
-                            </Button>
-                        </form>
-                    </div>
+                                {loading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    'Perbarui Kata Sandi'
+                                )}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </motion.div>
+
+            <p className="mt-6 text-xs text-wa-muted text-center">
+                Setelah berhasil, Anda akan diarahkan ke halaman masuk.
+            </p>
         </div>
     );
 }
 
-function ValidationHint({ active, text }: { active: boolean, text: string }) {
+function ValidationHint({ active, text }: { active: boolean; text: string }) {
     return (
         <div className={cn(
-            "flex items-center gap-2 text-[11px] font-bold tracking-tight transition-all duration-300",
-            active ? 'text-[#00a884]' : 'text-gray-300'
+            "flex items-center gap-1.5 text-[11px] font-semibold transition-all duration-300",
+            active ? 'text-wa-green' : 'text-[#adb5bd]'
         )}>
-            <ShieldCheck size={12} className={cn(active ? "opacity-100" : "opacity-30")} />
-            <span className="uppercase tracking-wider">{text}</span>
+            <ShieldCheck size={12} className={cn(active ? "opacity-100" : "opacity-40")} />
+            <span>{text}</span>
         </div>
-    )
+    );
 }

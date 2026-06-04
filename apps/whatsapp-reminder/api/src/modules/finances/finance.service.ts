@@ -5,6 +5,17 @@ import { TransactionType } from '@prisma/client';
 import { Success, Result, Failure } from '../../core/result';
 import { FinanceSummaryDTO } from '@ingetin/types';
 
+const CATEGORY_COLORS: Record<string, string> = {
+    FOOD: '#16a34a',
+    TRANSPORT: '#2563eb',
+    SHOPPING: '#db2777',
+    BILLS: '#9333ea',
+    ENTERTAINMENT: '#ea580c',
+    HEALTH: '#dc2626',
+    EDUCATION: '#0891b2',
+    OTHERS: '#64748b'
+};
+
 export class FinanceService {
     constructor(
         private readonly repository: FinanceRepository,
@@ -97,12 +108,68 @@ export class FinanceService {
             .reduce((sum, t) => sum + t.amount, 0);
 
         const limit = profile?.monthlyBudgetLimit || 0;
+        const remainingBudget = limit - expense;
+        const balance = income - expense;
+        const expensePercentage = limit > 0 ? Math.min((expense / limit) * 100, 100) : 0;
+        const status = limit <= 0
+            ? 'NO_BUDGET'
+            : remainingBudget < 0
+                ? 'OVER_BUDGET'
+                : expensePercentage >= 80
+                    ? 'WARNING'
+                    : 'HEALTHY';
+
+        const expenseTransactions = transactions.filter(t => t.type === TransactionType.EXPENSE);
+        const categories = Object.values(expenseTransactions.reduce<Record<string, { name: string; amount: number; color: string }>>((acc, transaction) => {
+            const name = transaction.category || 'OTHERS';
+            acc[name] ??= {
+                name,
+                amount: 0,
+                color: CATEGORY_COLORS[name] || CATEGORY_COLORS.OTHERS
+            };
+            acc[name].amount += transaction.amount;
+            return acc;
+        }, {}));
+
+        const dailyStats = Array.from({ length: now.getDate() }, (_, index) => {
+            const day = index + 1;
+            const amount = expenseTransactions
+                .filter(t => t.date.getDate() === day)
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            return { name: day.toString(), amount };
+        });
+
+        const weeklyBuckets = new Map<string, number>();
+        for (const transaction of expenseTransactions) {
+            const week = Math.ceil(transaction.date.getDate() / 7);
+            const name = `Week ${week}`;
+            weeklyBuckets.set(name, (weeklyBuckets.get(name) || 0) + transaction.amount);
+        }
+
+        const weeklyStats = Array.from({ length: 5 }, (_, index) => {
+            const name = `Week ${index + 1}`;
+            return { name, amount: weeklyBuckets.get(name) || 0 };
+        });
 
         return {
             totalIncome: income,
             totalExpense: expense,
             monthlyBudgetLimit: limit,
-            remainingBudget: limit - expense
+            remainingBudget,
+            balance,
+            expensePercentage,
+            status,
+            dailyStats,
+            weeklyStats,
+            monthlyStats: [{
+                name: now.toLocaleString('en-US', { month: 'short' }),
+                amount: expense
+            }],
+            categories,
+            dailyEstimation: now.getDate() > 0 ? expense / now.getDate() : 0,
+            subscriptions: [],
+            debts: []
         };
     }
 }

@@ -8,8 +8,6 @@
     "dev": "tsc -w"
   },
   "dependencies": {
-    "@ingetin/database": "*",
-    "@prisma/client": "^5.22.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

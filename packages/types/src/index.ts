@@ -1,25 +1,68 @@
 import { z } from 'zod';
-import { 
-    Role, 
-    ReminderStatus, 
-    RepeatInterval, 
-    LicenseStatus, 
-    MessageDirection, 
-    UsageType,
-    MessageType,
-    MessageStatus
-} from '@prisma/client';
 
-export { 
-    Role, 
-    ReminderStatus, 
-    RepeatInterval, 
-    LicenseStatus, 
-    MessageDirection, 
-    UsageType,
-    MessageType,
-    MessageStatus
-};
+/**
+ * 🛡️ INGETIN CORE TYPES (Pure TypeScript)
+ * Didefinisikan secara manual untuk menghindari dependensi pada runtime Prisma di Frontend.
+ */
+
+export enum Role {
+    ADMIN = 'ADMIN',
+    USER = 'USER'
+}
+
+export enum ReminderStatus {
+    PENDING = 'PENDING',
+    QUEUED = 'QUEUED',
+    SENT = 'SENT',
+    FAILED = 'FAILED',
+    CANCELLED = 'CANCELLED',
+    PAST = 'PAST'
+}
+
+export enum RepeatInterval {
+    NONE = 'NONE',
+    DAILY = 'DAILY',
+    WEEKEND = 'WEEKEND',
+    WEEKDAY = 'WEEKDAY',
+    WEEKLY = 'WEEKLY',
+    MONTHLY = 'MONTHLY',
+    YEARLY = 'YEARLY',
+    CUSTOM = 'CUSTOM'
+}
+
+export enum LicenseStatus {
+    AVAILABLE = 'AVAILABLE',
+    USED = 'USED',
+    PAUSED = 'PAUSED',
+    REVOKED = 'REVOKED'
+}
+
+export enum MessageDirection {
+    INBOUND = 'INBOUND',
+    OUTBOUND = 'OUTBOUND'
+}
+
+export enum UsageType {
+    OTP_SENT = 'OTP_SENT',
+    NOTIF_SENT = 'NOTIF_SENT',
+    INCOMING_MSG = 'INCOMING_MSG',
+    REGISTRATION = 'REGISTRATION',
+    LICENSE_ACTIVATE = 'LICENSE_ACTIVATE'
+}
+
+export enum MessageType {
+    OTP = 'OTP',
+    NOTIF = 'NOTIF'
+}
+
+export enum MessageStatus {
+    PENDING = 'PENDING',
+    QUEUED = 'QUEUED',
+    SENT = 'SENT',
+    DELIVERED = 'DELIVERED',
+    READ = 'READ',
+    FAILED = 'FAILED'
+}
 
 // Re-export as values directly from the source for better static analysis
 export { 
@@ -101,6 +144,7 @@ export interface ReminderDTO {
     schedule: Date;
     status: ReminderStatus;
     repeat: RepeatInterval;
+    daysOfWeek: number[]; // Added for proper schedule tracking
     externalId?: string | null;
     userId: string;
     createdAt: Date;
@@ -115,6 +159,8 @@ export interface LicenseDTO {
     userId?: string | null;
     activatedAt?: Date | null;
     createdAt: Date;
+    durationMonths?: number;
+    consumedBy?: string | null;
     user?: {
         id: string;
         username: string | null;
@@ -174,11 +220,31 @@ export interface ThreadHistoryDTO extends PaginatedResponse<MessageDTO> {
     phone: string;
 }
 
+export interface FinanceTransactionDTO {
+    id: string;
+    title: string;
+    amount: number;
+    type: 'INCOME' | 'EXPENSE';
+    category: string;
+    date: string;
+    status: 'SUCCESS' | 'PENDING' | 'FAILED';
+}
+
 export interface FinanceSummaryDTO {
     totalIncome: number;
     totalExpense: number;
     remainingBudget: number;
     monthlyBudgetLimit: number;
+    balance: number;
+    expensePercentage: number;
+    status: string;
+    dailyStats: { name: string; amount: number }[];
+    weeklyStats: { name: string; amount: number }[];
+    monthlyStats: { name: string; amount: number }[];
+    categories: { name: string; amount: number; color: string }[];
+    dailyEstimation?: number;
+    subscriptions?: { id: string; name: string; amount: number; dueDate: string }[];
+    debts?: { id: string; name: string; amount: number; type: 'DEBT' | 'RECEIVABLE'; dueDate: string }[];
 }
 
 // Inferred Types from Schemas
@@ -192,6 +258,44 @@ export type OTPVerifyInput = z.infer<typeof OTPVerifySchema>;
 export type GenerateLicenseInput = z.infer<typeof GenerateLicenseSchema>;
 export type SendNotificationInput = z.infer<typeof SendNotificationSchema>;
 export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>;
+
+export interface DashboardStats {
+    totalUsers: number;
+    activeUsers: number;
+    totalReminders: number;
+    systemHealth: number;
+    revenue: number;
+    activeLicenses: number;
+    kpis?: {
+        messages?: { total: number };
+        users?: { total: number };
+        reminders?: { active: number };
+    };
+}
+
+export interface PulseEntry {
+    timestamp: string;
+    count: number;
+}
+
+export interface AuditEvent {
+    id: string;
+    type: string;
+    title?: string;
+    description: string;
+    timestamp: string;
+    userId?: string;
+    metadata?: Record<string, unknown>;
+}
+
+export interface ProviderHealth {
+    status: 'OPERATIONAL' | 'DEGRADED' | 'DOWN';
+    latency: number;
+    lastChecked: string;
+}
+
+export type Profile = UserDTO;
+export type UserProfile = UserDTO;
 
 // Standard API Response Structure
 export type ApiResponse<T> = {

@@ -1,96 +1,91 @@
-import React, { useState, useMemo } from 'react';
-import { AxiosResponse } from 'axios';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-    Clock, 
-    Calendar as CalendarIcon, 
     RefreshCw, 
     Trash2, 
     Shield, 
-    AlertCircle, 
-    CheckCircle2, 
-    User as UserIcon, 
-    Mail, 
-    Smartphone, 
     Zap, 
     ArrowLeft,
     Database,
     Activity,
-    ChevronRight,
-    X,
-    ShieldAlert,
-    History as HistoryIcon,
-    Search,
-    Filter,
+    Mail, 
+    Smartphone, 
+    CheckCircle2,
     Terminal
 } from 'lucide-react';
-import { useUserReminders, useDeepSyncCalendar } from '../../hooks/useReminderHooks';
-import { useUserDetails } from '../../hooks/useUserHooks';
-import { WhatsAppAPI } from '../../api/whatsapp.api';
-import { Modal } from '../../components/ui/Modal';
-import { Card } from '../../components/ui/Card';
-import { Typography } from '../../components/ui/Typography';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../utils/tw.utils';
-import type { UserDTO, ApiResponse, ReminderDTO } from '@ingetin/types';
-import type { AuditEvent, OperationalHistoryEntry, AuditKPIProps } from '../../types';
+import { useUserReminders, useDeepSyncCalendar } from '@/entities/reminder/model/hooks';
+import { useUserDetails } from '@/entities/admin/model/hooks';
+// Fix [TS-04]: ChatAPI was imported but never used
+import { ReminderAPI } from '@/entities/reminder/api';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/Card';
+import { Modal } from '@/shared/ui/Modal';
+import { cn } from '@/shared/lib/tw.utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SLIDE_UP, STAGGER_CONTAINER, FADE_IN } from '../../utils/motion';
 import { toast } from 'sonner';
-import { ADMIN_COPY } from '../../constants/copy';
 
 type FilterType = 'PENDING' | 'SUCCESS' | 'CANCELLED' | 'PAST';
 
+interface ActivityEvent {
+    id: string;
+    title: string;
+    message: string;
+    schedule: string | Date;
+    status: string;
+    type: string;
+}
+
 /**
- * 🚀 THE MODERN PRO ADMIN AUDIT - v9.0
- * Deep forensic analysis of operational signals.
+ * 🚀 ADMIN USER AUDIT — WHATSAPP OFFICIAL STYLE
+ * Concept: Clinical, Minimal, Stable.
  */
 export default function AdminUserAudit() {
     const { username } = useParams<{ username: string }>();
     const navigate = useNavigate();
-    const [page, setPage] = useState(1);
+    const [page] = useState(1);
     const [activeFilter, setActiveFilter] = useState<FilterType>('PENDING');
     const [syncResult, setSyncResult] = useState<{ count: number } | null>(null);
     
-    const { data: user, isLoading: userLoading } = useUserDetails(username || '');
-    const userId = user?.id;
+    // Fix [L-02]: use null instead of '' so that `enabled: !!userId` guard works
+    const { data: user } = useUserDetails(username ?? null);
+    const userId = user?.id ?? null;
 
-    const { data: remindersData, isLoading: remindersLoading, refetch } = useUserReminders(userId || '', {
+    // Fix [L-03]: same as above for useUserReminders
+    const { data: remindersData, isLoading: remindersLoading, refetch } = useUserReminders(userId, {
         page,
         limit: 30
     });
     const allReminders = remindersData?.items || [];
-    const pagination = remindersData?.pagination;
     
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
     const combinedActivity = useMemo(() => {
-        const systemEvents: AuditEvent[] = [];
+        const systemEvents: ActivityEvent[] = [];
         if (user?.phoneHistory) {
-            user.phoneHistory.forEach((h: OperationalHistoryEntry) => systemEvents.push({
+            user.phoneHistory.forEach((h) => systemEvents.push({
                 id: `phone-${h.at}`,
-                title: h.action === 'UNLINK_WHATSAPP' ? 'WhatsApp Unlinked' : 'WhatsApp Linked',
-                message: h.action === 'UNLINK_WHATSAPP' ? `Previous: ${h.old}` : `New: ${h.new}`,
+                title: h.action === 'UNLINK_WHATSAPP' ? 'WA Terputus' : 'WA Terhubung',
+                // Fix: h.old/h.new are optional in HistoryEntry — use ?? fallback
+                message: h.action === 'UNLINK_WHATSAPP' ? `Lama: ${h.old ?? '-'}` : `Baru: ${h.new ?? '-'}`,
                 schedule: h.at,
                 status: 'SYSTEM',
                 type: 'WHATSAPP'
             }));
         }
-        if (user?.emailHistory) {
-            user.emailHistory.forEach((h: OperationalHistoryEntry) => systemEvents.push({
-                id: `email-${h.at}`,
-                title: h.action === 'UNLINK_GOOGLE' ? 'Google Unlinked' : 'Email Changed',
-                message: h.action === 'UNLINK_GOOGLE' ? `Previous: ${h.old}` : `New: ${h.new}`,
-                schedule: h.at,
-                status: 'SYSTEM',
-                type: 'GOOGLE'
-            }));
-        }
+        
+        // Map reminders to ActivityEvent format
+        const reminderEvents: ActivityEvent[] = allReminders.map(r => ({
+            id: r.id,
+            title: r.title,
+            message: r.message,
+            schedule: r.schedule,
+            status: r.status,
+            type: 'REMINDER'
+        }));
 
-        return [...allReminders, ...systemEvents].sort((a, b) => 
+        return [...reminderEvents, ...systemEvents].sort((a, b) => 
             new Date(b.schedule).getTime() - new Date(a.schedule).getTime()
         );
-    }, [allReminders, user?.phoneHistory, user?.emailHistory]);
+    }, [allReminders, user?.phoneHistory]);
 
     const filteredData = useMemo(() => combinedActivity.filter((r) => {
         if (activeFilter === 'PENDING') return r.status === 'PENDING' || r.status === 'QUEUED';
@@ -102,19 +97,14 @@ export default function AdminUserAudit() {
 
     const { mutate: triggerDeepSync, isPending: isSyncing } = useDeepSyncCalendar();
 
-    const handleFilterChange = (f: FilterType) => {
-        setActiveFilter(f);
-        setPage(1);
-    };
-
     const handleDeepSync = () => {
         if (!userId) return;
         triggerDeepSync(userId, {
-            onSuccess: (res: AxiosResponse<ApiResponse<{ count: number }>>) => {
-                if (res.data.success) {
-                    setSyncResult({ count: res.data.data.count || 0 });
-                    toast.success("Sinkronisasi Audit Berhasil");
-                }
+            onSuccess: (res) => {
+                // res is { synced: number } from UserAPI.deepSync
+                const count = res?.synced ?? 0;
+                setSyncResult({ count });
+                toast.success('Audit disinkronkan');
                 refetch();
             }
         });
@@ -122,226 +112,168 @@ export default function AdminUserAudit() {
 
     const handleDeleteConfirm = async () => {
         if (!deleteId) return;
+        // Fix [L-04]: was missing try/catch — API failure would leave UI broken
         try {
-            await WhatsAppAPI.deleteReminder(deleteId);
+            await ReminderAPI.deleteReminder(deleteId);
             refetch();
-            setDeleteId(null);
-            toast.success("Sinyal Dicabut");
-        } catch (err) {
+            toast.success('Tugas dicabut');
+        } catch {
+            toast.error('Gagal mencabut tugas. Coba lagi.');
+        } finally {
             setDeleteId(null);
         }
     };
 
     return (
-        <motion.div 
-            initial="initial"
-            animate="animate"
-            variants={STAGGER_CONTAINER}
-            className="flex flex-col min-h-full space-y-12 pb-20 max-w-6xl mx-auto text-left"
-        >
-            {/* 01. FORENSIC HEADER */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-border">
-                <div className="space-y-4 text-left">
-                    <motion.div variants={SLIDE_UP} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary border border-border text-primary">
-                        <Terminal size={12} className="text-accent" />
-                        <Typography variant="small" className="font-bold tracking-widest text-[10px] uppercase">{ADMIN_COPY.user_audit.badge}</Typography>
-                    </motion.div>
-                    
-                    <div className="space-y-2">
-                        <motion.div variants={SLIDE_UP}>
-                            <Typography variant="h1" className="text-4xl md:text-5xl font-bold tracking-tighter">
-                                {ADMIN_COPY.user_audit.title} <span className="text-accent">@{username}</span>
-                            </Typography>
-                        </motion.div>
-                        <motion.div variants={FADE_IN}>
-                            <Typography variant="p" className="max-w-xl text-muted-foreground font-medium">
-                                {ADMIN_COPY.user_audit.desc}
-                            </Typography>
-                        </motion.div>
+        <div className="w-full space-y-6 text-left">
+            
+            {/* ─── Header ─── */}
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-wa-border">
+                <div className="space-y-1">
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-wa-green mb-2">
+                        <Terminal size={13} />
+                        Audit Aktivitas Identitas
                     </div>
+                    <h1 className="text-2xl font-bold text-wa-dark">
+                        Log Audit: <span className="text-wa-green">@{username}</span>
+                    </h1>
+                    <p className="text-sm text-wa-icon">Analisis riwayat transmisi dan perubahan profil operasional.</p>
                 </div>
 
-                <motion.div variants={SLIDE_UP} className="flex items-center gap-3">
-                    <Button 
-                        variant="secondary" 
-                        onClick={() => navigate('/admin-user')}
-                        className="rounded-xl border border-border"
-                        leftIcon={<ArrowLeft size={16} />}
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <button 
+                        onClick={() => navigate('/admin-users')}
+                        className="h-10 px-4 bg-white border border-wa-border text-wa-icon text-sm font-semibold rounded-xl hover:bg-wa-bg transition-colors inline-flex items-center gap-2"
                     >
-                        {ADMIN_COPY.user_audit.btn_registry}
-                    </Button>
-                    <Button 
-                      onClick={handleDeepSync}
-                      isLoading={isSyncing}
-                      className="rounded-xl shadow-modern font-bold px-6"
-                      leftIcon={<RefreshCw size={18} className={cn(isSyncing && "animate-spin")} />}
+                        <ArrowLeft size={16} />
+                        Registry
+                    </button>
+                    <button 
+                        onClick={handleDeepSync}
+                        disabled={isSyncing}
+                        className="h-10 px-4 bg-wa-green text-white text-sm font-semibold rounded-xl hover:bg-wa-green-dark transition-colors inline-flex items-center gap-2 disabled:opacity-50"
                     >
-                        {ADMIN_COPY.user_audit.btn_sync}
-                    </Button>
-                </motion.div>
+                        <RefreshCw size={16} className={cn(isSyncing && "animate-spin")} />
+                        Sinkron Audit
+                    </button>
+                </div>
             </header>
 
-            {/* 02. AUDIT KPI GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-                <AuditKPI label={ADMIN_COPY.user_audit.kpi.account} value={user?.email || '...'} icon={<Mail size={16} />} status={user?.email ? 'LINKED' : 'UNSET'} />
-                <AuditKPI label={ADMIN_COPY.user_audit.kpi.wa_link} value={user?.phoneNumber ? `+${user.phoneNumber}` : 'None'} icon={<Smartphone size={16} />} status={user?.phoneNumber ? 'ONLINE' : 'OFFLINE'} isSuccess={!!user?.phoneNumber} />
-                <AuditKPI label={ADMIN_COPY.user_audit.kpi.registry_load} value={pagination?.total || 0} icon={<Database size={16} />} status="TOTAL TUGAS" />
-                <AuditKPI label={ADMIN_COPY.user_audit.kpi.signal_load} value={filteredData.length} icon={<Activity size={16} />} status="AKTIVITAS LOG" />
+            {/* ─── Info Grid ─── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <KPICard title="Email Akun" value={user?.email || '...'} icon={Mail} color="#00a884" />
+                <KPICard title="WhatsApp" value={user?.phoneNumber ? `+${user.phoneNumber}` : 'None'} icon={Smartphone} color="#128C7E" />
+                <KPICard title="Total Tugas" value={allReminders.length} icon={Database} color="#667781" />
+                <KPICard title="Aktivitas Log" value={filteredData.length} icon={Activity} color="#25D366" />
             </div>
 
-            {/* 03. OPERATIONAL LOGS */}
-            <section className="space-y-8 text-left">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2 border-b border-border">
+            {/* ─── Logs Section ─── */}
+            <Card className="rounded-2xl border-wa-border shadow-wa overflow-hidden bg-white">
+                <CardHeader className="p-5 md:p-6 border-b border-wa-border flex-row items-center justify-between mb-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-accent rounded-full" />
-                        <Typography variant="h2" className="text-2xl font-bold tracking-tight">Log Operasional</Typography>
+                        <div className="w-9 h-9 rounded-xl bg-wa-green/8 flex items-center justify-center">
+                            <Activity size={18} className="text-wa-green" />
+                        </div>
+                        <CardTitle className="text-[15px] font-semibold text-wa-dark">Aliran Operasional</CardTitle>
                     </div>
-                    <div className="flex bg-secondary p-1 rounded-xl border border-border">
-                        <FilterBtn label={ADMIN_COPY.user_audit.filter.pending} active={activeFilter === 'PENDING'} onClick={() => handleFilterChange('PENDING')} />
-                        <FilterBtn label={ADMIN_COPY.user_audit.filter.success} active={activeFilter === 'SUCCESS'} onClick={() => handleFilterChange('SUCCESS')} />
-                        <FilterBtn label={ADMIN_COPY.user_audit.filter.cancelled} active={activeFilter === 'CANCELLED'} onClick={() => handleFilterChange('CANCELLED')} />
-                        <FilterBtn label={ADMIN_COPY.user_audit.filter.history} active={activeFilter === 'PAST'} onClick={() => handleFilterChange('PAST')} />
+                    <div className="flex bg-wa-bg p-1 rounded-lg border border-wa-border gap-1">
+                        <FilterBtn label="Pending" active={activeFilter === 'PENDING'} onClick={() => setActiveFilter('PENDING')} />
+                        <FilterBtn label="Selesai" active={activeFilter === 'SUCCESS'} onClick={() => setActiveFilter('SUCCESS')} />
+                        <FilterBtn label="Riwayat" active={activeFilter === 'PAST'} onClick={() => setActiveFilter('PAST')} />
                     </div>
-                </div>
-
-                <div className="space-y-3">
-                    <AnimatePresence mode="wait">
-                        {remindersLoading ? (
-                            <motion.div key="loading" {...FADE_IN} className="py-20 flex flex-col items-center gap-4">
-                                <RefreshCw className="w-8 h-8 text-accent animate-spin" />
-                                <Typography variant="small" className="font-bold opacity-30 uppercase tracking-widest">Memuat Log...</Typography>
-                            </motion.div>
-                        ) : filteredData.length === 0 ? (
-                            <motion.div key="empty" {...FADE_IN} className="py-32 text-center flex flex-col items-center gap-6 bg-secondary/20 rounded-2xl border border-dashed border-border p-12">
-                                <Zap className="w-12 h-12 text-muted-foreground/20" />
-                                <Typography variant="small" className="font-bold opacity-30 uppercase tracking-[0.4em]">{ADMIN_COPY.user_audit.empty}</Typography>
-                            </motion.div>
-                        ) : (
-                            <motion.div key="content" initial="initial" animate="animate" variants={STAGGER_CONTAINER} className="space-y-3">
-                                {filteredData.map((r, idx) => (
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="divide-y divide-wa-border">
+                        <AnimatePresence mode="wait">
+                            {remindersLoading ? (
+                                <div className="py-20 text-center"><RefreshCw className="mx-auto w-6 h-6 text-wa-green animate-spin" /></div>
+                            ) : filteredData.length === 0 ? (
+                                <div className="py-20 text-center text-sm font-semibold text-wa-muted">Log audit kosong</div>
+                            ) : (
+                                filteredData.map((r) => (
                                     <motion.div 
                                         key={r.id} 
-                                        variants={SLIDE_UP}
-                                        transition={{ delay: idx * 0.02 }}
-                                        className="group flex flex-col md:flex-row md:items-center justify-between gap-6 p-5 bg-white border border-border rounded-xl hover:border-accent/40 hover:shadow-subtle transition-all"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="p-5 flex items-center justify-between hover:bg-[#fcfcfc] transition-colors"
                                     >
-                                        <div className="flex items-center gap-5">
+                                        <div className="flex items-center gap-4 min-w-0">
                                             <div className={cn(
-                                                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border transition-all shadow-sm",
-                                                r.status === 'SENT' || r.status === 'SYSTEM' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground/40'
+                                                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border",
+                                                r.status === 'SENT' || r.status === 'SYSTEM' ? 'bg-wa-dark text-white' : 'bg-wa-bg text-[#94a3b8]'
                                             )}>
-                                                {r.status === 'SYSTEM' ? <Shield size={18} strokeWidth={2.5} /> : <Zap size={18} strokeWidth={2.5} />}
+                                                {r.status === 'SYSTEM' ? <Shield size={16} /> : <Zap size={16} />}
                                             </div>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-3">
-                                                    <Typography variant="h4" className="text-sm font-bold tracking-tight text-foreground">{r.title}</Typography>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <p className="text-[13px] font-bold text-wa-dark truncate">{r.title}</p>
                                                     <span className={cn(
-                                                        "text-[9px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-widest",
-                                                        r.status === 'SENT' || r.status === 'SYSTEM' ? "bg-success/5 text-success border-success/10" : "bg-secondary text-muted-foreground/40 border-border"
+                                                        "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest border",
+                                                        r.status === 'SENT' || r.status === 'SYSTEM' ? "bg-wa-green-light text-wa-teal border-[#c0eab9]" : "bg-wa-bg text-[#94a3b8] border-wa-border"
                                                     )}>{r.status}</span>
                                                 </div>
-                                                <Typography variant="p" className="text-xs font-medium text-muted-foreground/60 line-clamp-1 max-w-md">{r.message}</Typography>
+                                                <p className="text-[11px] text-wa-muted truncate max-w-md">{r.message}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between md:flex-row md:items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-border/60 pt-4 md:pt-0 md:pl-6">
-                                            <div className="text-right flex flex-col items-end">
-                                                <span className="text-[10px] font-bold tabular-nums text-foreground uppercase tracking-tight">
-                                                    {new Date(r.schedule).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                                </span>
-                                                <div className="flex items-center gap-1.5 text-muted-foreground/30 text-[9px] font-bold uppercase tracking-widest">
-                                                    <Clock size={10} />
-                                                    <span>{new Date(r.schedule).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                </div>
+                                        <div className="flex items-center gap-6 shrink-0">
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-wa-dark uppercase">{new Date(r.schedule).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
+                                                <p className="text-[9px] text-[#94a3b8] font-bold">{new Date(r.schedule).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                             </div>
-                                            <button onClick={() => setDeleteId(r.id)} className="p-2.5 bg-destructive/5 text-destructive rounded-lg hover:bg-destructive hover:text-white transition-all border border-destructive/10 opacity-0 group-hover:opacity-100">
-                                                <Trash2 size={16} />
+                                            <button onClick={() => setDeleteId(r.id)} className="p-2 text-wa-muted hover:text-red-500 transition-colors">
+                                                <Trash2 size={15} />
                                             </button>
                                         </div>
                                     </motion.div>
-                                ))}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </section>
+                                ))
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </CardContent>
+            </Card>
 
-            {/* SYNC RESULT MODAL */}
+            {/* Sync Result Modal */}
             <AnimatePresence>
                 {syncResult && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/90 backdrop-blur-sm">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
-                            <Card className="max-w-md w-full p-10 space-y-8 bg-white border border-border shadow-elevated text-center" padding="none">
-                                <div className="w-16 h-16 bg-success/10 text-success rounded-2xl flex items-center justify-center mx-auto border border-success/10">
-                                    <CheckCircle2 size={32} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Typography variant="h3" className="text-2xl font-bold tracking-tight">Sinkronisasi Berhasil</Typography>
-                                    <Typography variant="p" className="text-sm font-medium text-muted-foreground leading-relaxed px-4">
-                                        Sebanyak <span className="text-foreground font-bold">{syncResult.count}</span> aktivitas audit telah disinkronkan dengan presisi.
-                                    </Typography>
-                                </div>
-                                <Button onClick={() => setSyncResult(null)} className="w-full h-12 rounded-xl shadow-modern font-bold uppercase tracking-widest text-[10px]">Lanjutkan Registry</Button>
-                            </Card>
-                        </motion.div>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                        <Card className="w-full max-w-sm p-8 text-center rounded-3xl shadow-xl bg-white border border-wa-border">
+                            <div className="w-14 h-14 bg-wa-green-light text-wa-green rounded-2xl flex items-center justify-center mx-auto mb-4"><CheckCircle2 size={28} /></div>
+                            <h3 className="text-lg font-bold text-wa-dark mb-2">Sinkronisasi Berhasil</h3>
+                            <p className="text-sm text-wa-muted mb-6">Sebanyak {syncResult.count} aktivitas audit telah diperbarui.</p>
+                            <button onClick={() => setSyncResult(null)} className="w-full h-11 bg-wa-dark text-white font-bold rounded-xl text-xs uppercase tracking-widest">Tutup</button>
+                        </Card>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* REVOKE MODAL */}
-            <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title={ADMIN_COPY.user_audit.revoke_modal.title}>
-                <div className="space-y-6 pt-6">
-                    <Typography variant="p" className="text-sm text-muted-foreground leading-relaxed">
-                        {ADMIN_COPY.user_audit.revoke_modal.desc}
-                    </Typography>
+            <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Konfirmasi Revoke">
+                <div className="space-y-4 pt-4">
+                    <p className="text-sm text-wa-muted">Apakah Anda yakin ingin membatalkan tugas operasional ini secara permanen?</p>
                     <div className="flex gap-3">
-                        <Button variant="secondary" onClick={() => setDeleteId(null)} className="flex-1 h-12 rounded-xl border border-border font-bold">
-                            {ADMIN_COPY.user_audit.revoke_modal.btn_cancel}
-                        </Button>
-                        <Button variant="destructive" onClick={handleDeleteConfirm} className="flex-1 h-12 rounded-xl shadow-md font-bold">
-                            {ADMIN_COPY.user_audit.revoke_modal.btn_confirm}
-                        </Button>
+                        <button onClick={() => setDeleteId(null)} className="flex-1 h-11 bg-wa-bg text-wa-icon font-bold rounded-xl text-xs">Batal</button>
+                        <button onClick={handleDeleteConfirm} className="flex-1 h-11 bg-red-500 text-white font-bold rounded-xl text-xs">Ya, Revoke</button>
                     </div>
                 </div>
             </Modal>
-        </motion.div>
+        </div>
     );
 }
 
-function AuditKPI({ label, value, icon, status, isSuccess, onClick }: AuditKPIProps & { isSuccess?: boolean }) {
+function KPICard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: React.ElementType; color: string; }) {
     return (
-        <Card onClick={onClick} className={cn(
-            "p-8 border border-border bg-white hover:border-accent/40 transition-all group h-full flex flex-col justify-between min-h-[220px] shadow-subtle rounded-2xl relative overflow-hidden",
-            onClick && "cursor-pointer active:scale-[0.98]"
-        )} padding="none">
-            <div className="absolute top-0 right-0 p-6 opacity-[0.03] text-accent">
-                {icon}
-            </div>
-            <div className="flex justify-between items-start relative z-10">
-                <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center text-muted-foreground/60 border border-border group-hover:bg-accent group-hover:text-white transition-all">
-                    {icon}
-                </div>
-                <div className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest",
-                    isSuccess ? "bg-success/5 text-success border-success/10" : "bg-secondary text-muted-foreground/40 border-border"
-                )}>
-                    {status}
-                </div>
-            </div>
-            <div className="space-y-1 relative z-10 text-left">
-                <Typography variant="small" className="font-bold text-muted-foreground/30 uppercase tracking-widest text-[9px]">{label}</Typography>
-                <Typography variant="h3" className="text-xl font-bold tracking-tight truncate leading-tight">{value}</Typography>
-            </div>
-        </Card>
+        <div className="bg-white border border-wa-border rounded-xl p-4 shadow-wa text-left">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: `${color}12` }}><Icon size={18} style={{ color }} /></div>
+            <div className="text-xl font-bold text-wa-dark leading-none truncate">{value}</div>
+            <div className="text-[10px] text-wa-icon mt-1 font-semibold uppercase tracking-wider">{title}</div>
+        </div>
     );
 }
 
 function FilterBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
     return (
         <button onClick={onClick} className={cn(
-            "h-9 px-4 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg",
-            active ? "bg-white text-primary shadow-subtle border border-border" : "bg-transparent text-muted-foreground/40 hover:text-muted-foreground"
-        )}>
-            {label}
-        </button>
+            "h-8 px-4 text-[10px] font-bold uppercase tracking-widest transition-all rounded-md",
+            active ? "bg-white text-wa-dark shadow-sm border border-wa-border" : "text-[#94a3b8] hover:text-wa-dark"
+        )}>{label}</button>
     );
 }

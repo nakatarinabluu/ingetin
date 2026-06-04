@@ -1,201 +1,257 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     Plus,
     Search,
     Calendar,
-    MessageCircle,
-    Clock,
-    MoreVertical,
-    CheckCheck,
     Bell,
+    List,
 } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
-import { CreateReminderModal } from '../../components/features/reminders/CreateReminderModal';
+import { ReminderCard } from '@/entities/reminder/ui/ReminderCard';
+import { EmptyState, ErrorState, SkeletonCard } from '@/entities/reminder/ui/ReminderStates';
+import { ReminderCalendarView } from '@/features/create-reminder/ui/ReminderCalendarView';
+import { CreateReminderModal } from '@/features/create-reminder/ui/CreateReminderModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { useReminders } from '../../hooks/useReminderHooks';
-import { REMINDERS_COPY } from '../../constants/copy';
-import { cn } from '../../utils/tw.utils';
+import { useReminders, useDeleteReminder } from '@/entities/reminder/model/hooks';
+import { REMINDERS_COPY } from '@/shared/config/copy/app';
+import { cn } from '@/shared/lib/tw.utils';
+import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
+import { useDebounce } from '@/shared/lib/use-debounce';
+import { toast } from 'sonner';
+import { ReminderDTO } from '@ingetin/types';
+
+type StatusFilter = 'all' | 'PENDING' | 'SENT';
 
 /**
  * UserReminders — WhatsApp Official Style
+ * Featured: List View & Calendar View Dispatcher
  */
 export default function UserReminders() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [filterStatus, setFilterStatus] = useState<StatusFilter>('all');
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
+    
+    // Modals State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(searchParams.get('action') === 'new');
+    const [editTarget, setEditTarget] = useState<ReminderDTO | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
-    const { data: remindersRes, isLoading, refetch } = useReminders({
-        page,
-        limit: 8,
-        search
-    });
+    const deleteMutation = useDeleteReminder();
 
-    const closeCreateModal = () => {
-        setIsCreateModalOpen(false);
-        if (searchParams.get('action') === 'new') {
-            setSearchParams({});
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        try {
+            await deleteMutation.mutateAsync(deleteTarget.id);
+            const successTitle = REMINDERS_COPY.create_modal.toast?.delete_success || "Agenda Dihapus";
+            const successDesc = typeof REMINDERS_COPY.create_modal.toast?.delete_desc === 'function' 
+                ? REMINDERS_COPY.create_modal.toast.delete_desc(deleteTarget.title)
+                : `Agenda "${deleteTarget.title}" telah dihapus.`;
+
+            toast.success(successTitle, {
+                description: successDesc
+            });
+            setDeleteTarget(null);
+        } catch (err) {
+            toast.error(REMINDERS_COPY.create_modal.toast?.error_delete || "Gagal Menghapus", {
+                description: "Terjadi kesalahan saat menghapus agenda."
+            });
         }
     };
 
+    const isDeleting = deleteMutation.isPending;
+
+    const { data: remindersRes, isLoading, isError, refetch } = useReminders({
+        page,
+        limit: viewMode === 'calendar' ? 100 : 8,
+        search: debouncedSearch,
+        // Fix [UX-03]: 'all' is a UI-only value — omit it so API receives no filter
+        status: filterStatus === 'all' ? undefined : filterStatus
+    });
+
+    const handleEdit = (reminder: ReminderDTO) => {
+        setEditTarget(reminder);
+        setIsCreateModalOpen(true);
+    };
+
     const handleCreateSuccess = () => {
+        setIsCreateModalOpen(false);
+        setEditTarget(null);
         refetch();
-        closeCreateModal();
     };
 
     return (
         <div className="w-full space-y-5 pb-24 text-left">
 
             {/* ─── Header ─── */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#e9edef]">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-wa-border">
                 <div>
-                    <div className="inline-flex items-center gap-2 text-xs font-medium text-[#00a884] mb-2">
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-wa-green mb-2">
                         <Bell size={13} strokeWidth={2} />
                         {REMINDERS_COPY.header.badge}
                     </div>
-                    <h1 className="text-2xl font-bold text-[#111b21]">Agenda Saya</h1>
-                    <p className="text-sm text-[#54656f] mt-0.5">
+                    <h1 className="text-2xl font-bold text-wa-dark">Agenda Saya</h1>
+                    <p className="text-sm text-wa-icon mt-0.5">
                         {REMINDERS_COPY.header.desc_addon}
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="shrink-0 h-10 px-5 bg-[#00a884] text-white text-sm font-semibold rounded-xl hover:bg-[#008069] transition-colors inline-flex items-center gap-2"
-                >
-                    <Plus size={17} strokeWidth={2.5} />
-                    Tambah Agenda
-                </button>
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex bg-wa-bg p-1 rounded-xl border border-wa-border mr-2">
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            className={cn(
+                                "p-2 rounded-lg transition-all",
+                                viewMode === 'list' ? "bg-white text-wa-dark shadow-sm" : "text-wa-icon hover:text-wa-dark"
+                            )}
+                        >
+                            <List size={18} />
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('calendar')}
+                            className={cn(
+                                "p-2 rounded-lg transition-all",
+                                viewMode === 'calendar' ? "bg-white text-wa-dark shadow-sm" : "text-wa-icon hover:text-wa-dark"
+                            )}
+                        >
+                            <Calendar size={18} />
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="shrink-0 h-10 px-5 bg-wa-green text-white text-sm font-semibold rounded-xl hover:bg-wa-green-dark transition-colors inline-flex items-center gap-2 shadow-sm"
+                    >
+                        <Plus size={17} strokeWidth={2.5} />
+                        Tambah Agenda
+                    </button>
+                </div>
             </header>
 
-            {/* ─── Search bar ─── */}
-            <div className="relative">
-                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#54656f]" strokeWidth={2} />
-                <input
-                    type="text"
-                    placeholder={REMINDERS_COPY.search_placeholder}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full h-11 bg-white border border-[#e9edef] rounded-xl pl-10 pr-4 text-[15px] text-[#111b21] placeholder:text-[#667781] focus:outline-none focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/10 transition-all"
-                />
-            </div>
-
-            {/* ─── Reminder Grid ─── */}
-            <main className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AnimatePresence mode="popLayout">
-                    {isLoading ? (
-                        [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
-                    ) : remindersRes?.items.length === 0 ? (
-                        <div className="col-span-full py-16 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-[#f0f2f5] flex items-center justify-center mx-auto mb-4">
-                                <MessageCircle size={28} className="text-[#54656f]" strokeWidth={1.5} />
-                            </div>
-                            <h3 className="text-[16px] font-semibold text-[#111b21] mb-1.5">
-                                {REMINDERS_COPY.empty.title}
-                            </h3>
-                            <p className="text-sm text-[#54656f] mb-5 max-w-xs mx-auto">
-                                {REMINDERS_COPY.empty.desc}
-                            </p>
-                            <button
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="h-10 px-5 bg-[#00a884] text-white text-sm font-semibold rounded-xl hover:bg-[#008069] transition-colors inline-flex items-center gap-2"
-                            >
-                                <Plus size={16} strokeWidth={2.5} />
-                                {REMINDERS_COPY.empty.btn_init}
-                            </button>
+            <AnimatePresence mode="wait">
+                {viewMode === 'list' ? (
+                    <motion.div 
+                        key="list-view"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-5"
+                    >
+                        {/* Search bar */}
+                        <div className="relative">
+                            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wa-icon" strokeWidth={2} />
+                            <input
+                                type="text"
+                                placeholder={REMINDERS_COPY.search_placeholder}
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                                className="w-full h-11 bg-white border border-wa-border rounded-xl pl-10 pr-4 text-[15px] text-wa-dark placeholder:text-wa-muted focus:outline-none focus:border-wa-green focus:ring-2 focus:ring-wa-green/10 transition-all shadow-sm"
+                            />
                         </div>
-                    ) : (
-                        remindersRes?.items.map((reminder, idx) => {
-                            const date = new Date(reminder.schedule);
-                            const formattedDate = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                            const formattedTime = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-                            return (
-                                <motion.div
-                                    key={reminder.id}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.04, duration: 0.3 }}
+                        {/* Status Tabs */}
+                        <div className="flex items-center gap-1 bg-wa-bg p-1 rounded-xl w-fit border border-wa-border">
+                            {([
+                                { id: 'all',     label: 'Semua' },
+                                { id: 'PENDING', label: 'Aktif' },
+                                { id: 'SENT',    label: 'Terkirim' },
+                            ] as { id: StatusFilter; label: string }[]).map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => { setFilterStatus(tab.id); setPage(1); }}
+                                    className={cn(
+                                        'px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap',
+                                        filterStatus === tab.id
+                                            ? 'bg-white text-wa-dark shadow-wa border border-wa-border'
+                                            : 'text-wa-icon hover:text-wa-dark'
+                                    )}
                                 >
-                                    <Card className="p-5 border-[#e9edef] shadow-wa hover:shadow-wa-md transition-shadow rounded-2xl bg-white flex flex-col gap-4">
-                                        {/* Header */}
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-10 h-10 rounded-xl bg-[#00a884]/8 flex items-center justify-center shrink-0">
-                                                    <MessageCircle size={18} className="text-[#00a884]" strokeWidth={2} />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="text-[15px] font-semibold text-[#111b21] truncate leading-snug">{reminder.title}</h3>
-                                                    <span className="text-xs text-[#667781]">#{reminder.id.slice(0, 8).toUpperCase()}</span>
-                                                </div>
-                                            </div>
-                                            <button className="w-8 h-8 flex items-center justify-center text-[#54656f] hover:text-[#111b21] hover:bg-[#f0f2f5] rounded-lg transition-colors shrink-0">
-                                                <MoreVertical size={17} strokeWidth={2} />
-                                            </button>
-                                        </div>
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
 
-                                        {/* Message bubble */}
-                                        <div className="bg-[#f0f2f5] rounded-2xl rounded-tl-sm px-4 py-3 relative">
-                                            <p className="text-sm text-[#111b21] leading-relaxed pr-12">
-                                                {reminder.message}
-                                            </p>
-                                            <div className="absolute bottom-2 right-3 flex items-center gap-1 text-[#667781]">
-                                                <span className="text-[10px] tabular-nums">{formattedTime}</span>
-                                                <CheckCheck size={13} className={cn(
-                                                    reminder.status === 'SENT' ? "text-[#00a884]" : "text-[#667781]/50"
-                                                )} />
-                                            </div>
-                                        </div>
+                        {/* Reminder Grid */}
+                        <div className="relative border border-wa-border rounded-2xl bg-[#fcfcfc] p-3 md:p-5">
+                            <main className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-4 min-h-[300px]">
+                                {(() => {
+                                    if (isError) return <ErrorState onRetry={refetch} />;
+                                    const items = remindersRes?.items || [];
+                                    if (isLoading) return [...Array(4)].map((_, i) => <SkeletonCard key={i} />);
+                                    if (items.length === 0) return <EmptyState onAdd={() => setIsCreateModalOpen(true)} />;
+                                    return items.map((reminder: ReminderDTO, idx: number) => (
+                                        <motion.div
+                                            key={reminder.id}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.04 }}
+                                        >
+                                            <ReminderCard
+                                                item={reminder}
+                                                onEdit={() => handleEdit(reminder)}
+                                                onDelete={() => setDeleteTarget({ id: reminder.id, title: reminder.title })}
+                                            />
+                                        </motion.div>
+                                    ));
+                                })()}
+                            </main>
 
-                                        {/* Footer */}
-                                        <div className="flex items-center justify-between pt-1">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-1.5 text-xs text-[#667781]">
-                                                    <Calendar size={13} strokeWidth={2} />
-                                                    {formattedDate}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-xs text-[#667781]">
-                                                    <Clock size={13} strokeWidth={2} />
-                                                    {formattedTime}
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-                                                reminder.status === 'SENT'
-                                                    ? "bg-[#128C7E]/8 text-[#128C7E]"
-                                                    : "bg-[#00a884]/8 text-[#00a884]"
-                                            )}>
-                                                <span className={cn(
-                                                    "w-1.5 h-1.5 rounded-full",
-                                                    reminder.status === 'SENT' ? "bg-[#128C7E]" : "bg-[#00a884] animate-pulse"
-                                                )} />
-                                                {reminder.status === 'SENT' ? 'Terkirim' : 'Aktif'}
-                                            </div>
-                                        </div>
-                                    </Card>
-                                </motion.div>
-                            );
-                        })
-                    )}
-                </AnimatePresence>
-            </main>
+                            {/* Pagination */}
+                            {remindersRes?.pagination?.totalPages && remindersRes.pagination.totalPages > 1 && (
+                                <div className="pt-4 mt-1 border-t border-wa-border flex items-center justify-between">
+                                    <span className="text-xs text-wa-icon font-medium pl-1">Halaman {page}</span>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className="h-8 px-3 rounded-lg text-xs font-semibold bg-white border border-wa-border text-wa-dark hover:bg-wa-bg disabled:opacity-50 transition-colors"
+                                        >
+                                            Sebelum
+                                        </button>
+                                        <button 
+                                            onClick={() => setPage(p => p + 1)}
+                                            disabled={page >= remindersRes.pagination.totalPages}
+                                            className="h-8 px-3 rounded-lg text-xs font-semibold bg-white border border-wa-border text-wa-dark hover:bg-wa-bg disabled:opacity-50 transition-colors"
+                                        >
+                                            Berikutnya
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                ) : (
+                    <ReminderCalendarView 
+                        reminders={remindersRes?.items || []} 
+                        onEdit={handleEdit} 
+                        onAdd={() => setIsCreateModalOpen(true)} 
+                    />
+                )}
+            </AnimatePresence>
 
-            {/* Footer note */}
-            <p className="text-xs text-[#667781] text-center pt-2">
-                {REMINDERS_COPY.footer.secured}
-            </p>
+            {/* Create / Edit Modal */}
+            <CreateReminderModal 
+                isOpen={isCreateModalOpen} 
+                onClose={() => {
+                    setIsCreateModalOpen(false);
+                    setEditTarget(null);
+                }} 
+                onSuccess={handleCreateSuccess} 
+                initialData={editTarget}
+            />
 
-            <CreateReminderModal
-                isOpen={isCreateModalOpen}
-                onClose={closeCreateModal}
-                onSuccess={handleCreateSuccess}
+            {/* Delete Modal */}
+            <ConfirmationModal
+                isOpen={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={handleDelete}
+                title="Hapus Agenda?"
+                description={`Agenda "${deleteTarget?.title}" akan dihapus secara permanen.`}
+                confirmText="Hapus"
+                cancelText="Batal"
+                isLoading={isDeleting}
+                type="danger"
             />
         </div>
-    );
-}
-
-function SkeletonCard() {
-    return (
-        <div className="h-[180px] rounded-2xl bg-[#f0f2f5] animate-pulse border border-[#e9edef]" />
     );
 }

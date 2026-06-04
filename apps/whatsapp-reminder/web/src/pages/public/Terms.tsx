@@ -1,15 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Typography } from '../../components/ui/Typography';
-import { Button } from '../../components/ui/Button';
-import { LEGAL_COPY } from '../../constants/copy';
-import { motion } from 'framer-motion';
-import { FADE_IN, SLIDE_UP } from '../../utils/motion';
-import { FileText, ArrowRight, Gavel } from 'lucide-react';
+import { LEGAL_COPY } from '@/shared/config/copy';
+import { Gavel, ArrowRight } from 'lucide-react';
 
-/**
- * 🚀 THE OFFICIAL WHATSAPP TERMS PAGE
- */
 export default function Terms() {
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -17,64 +10,66 @@ export default function Terms() {
     }, []);
 
     return (
-        <div className="relative min-h-screen bg-white selection:bg-[#25D366]/10 selection:text-[#00a884] overflow-x-hidden pt-24 pb-32">
-            <div className="max-w-4xl mx-auto px-6">
-                {/* 01. HEADER SECTION */}
-                <header className="mb-16 border-b border-gray-100 pb-12 text-center md:text-left">
-                    <motion.div {...SLIDE_UP} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f0f2f5] border border-[#00a884]/20 text-[#00a884] mb-8">
+        <div className="min-h-screen bg-white pt-24 pb-32">
+            <div className="max-w-3xl mx-auto px-6">
+                
+                {/* ─── Header ─── */}
+                <header className="mb-12 border-b border-wa-border pb-8 pt-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-wa-bg text-wa-green mb-6">
                         <Gavel size={14} />
-                        <Typography variant="small" className="font-bold tracking-widest text-[10px] uppercase text-[#00a884]">{LEGAL_COPY.terms.badge}</Typography>
-                    </motion.div>
+                        <span className="text-xs font-semibold">{LEGAL_COPY.terms.badge}</span>
+                    </div>
                     
-                    <motion.div {...SLIDE_UP} transition={{ delay: 0.1 }} className="space-y-4">
-                        <Typography variant="h1" className="text-4xl md:text-6xl font-bold text-[#111b21] tracking-tight">
-                            {LEGAL_COPY.terms.title.replace('. ', ' ')}
-                        </Typography>
-                        <Typography variant="p" className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">{LEGAL_COPY.terms.version}</Typography>
-                    </motion.div>
+                    <h1 className="text-3xl md:text-5xl font-bold text-wa-dark mb-3">
+                        {LEGAL_COPY.terms.title.replace('. ', ' ')}
+                    </h1>
+                    <p className="text-sm text-wa-icon font-medium">
+                        {LEGAL_COPY.terms.version}
+                    </p>
                 </header>
 
-                {/* 02. CONTENT SECTION */}
-                <article className="space-y-16 text-left">
-                    <section className="space-y-6">
-                        <Typography variant="h2" className="text-2xl font-bold text-[#111b21]">01. Penerimaan Ketentuan</Typography>
-                        <Typography variant="p" className="text-gray-600 font-medium leading-relaxed">
-                          Dengan mendaftarkan akun atau menggunakan layanan Ingetin, Anda menyatakan bahwa Anda telah membaca, memahami, dan setuju untuk terikat oleh Ketentuan Layanan ini. Jika Anda tidak menyetujui ketentuan ini, Anda dilarang menggunakan asisten digital kami.
-                        </Typography>
+                {/* ─── Content ─── */}
+                <article className="space-y-10 text-left">
+                    <section className="space-y-3">
+                        <h2 className="text-xl font-bold text-wa-dark">1. Penerimaan Ketentuan</h2>
+                        <p className="text-wa-icon leading-relaxed">
+                          Dengan mendaftarkan akun atau menggunakan layanan aplikasi ini, Anda menyatakan telah membaca, memahami, dan menyetujui Ketentuan Layanan ini. Anda dilarang menggunakan platform apabila ada keberatan terhadap poin-poin yang tercantum.
+                        </p>
                     </section>
 
-                    <section className="space-y-6">
-                        <Typography variant="h2" className="text-2xl font-bold text-[#111b21]">02. Penggunaan yang Sah</Typography>
-                        <Typography variant="p" className="text-gray-600 font-medium leading-relaxed">
-                          Anda setuju untuk menggunakan Ingetin hanya untuk tujuan produktivitas pribadi yang sah. Penggunaan untuk pengiriman pesan massal (spam), aktivitas ilegal, atau tindakan apa pun yang membahayakan stabilitas infrastruktur kami sangat dilarang dan akan mengakibatkan penghentian akses secara instan.
-                        </Typography>
+                    <section className="space-y-3">
+                        <h2 className="text-xl font-bold text-wa-dark">2. Penggunaan yang Sah</h2>
+                        <p className="text-wa-icon leading-relaxed">
+                          Layanan kami dirancang sebagai asisten produktivitas personal. Menggunakan otomatisasi kami untuk span massal, pengerusakan layanan pihak ketiga, atau kegiatan melanggar hukum merupakan sebuah larangan. Kami berhak membatalkan akses layanan milik siapa pun yang melanggar dan menyebarkan malware tanpa peringatan administratif terlebih dahulu.
+                        </p>
                     </section>
 
-                    <section className="space-y-6">
-                        <Typography variant="h2" className="text-2xl font-bold text-[#111b21]">03. Tanggung Jawab Akun</Typography>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="p-8 rounded-2xl bg-[#f0f2f5] border border-gray-100 space-y-4">
-                                <div className="text-[10px] font-bold text-[#00a884] uppercase tracking-widest opacity-60">Identifikasi</div>
-                                <Typography variant="p" className="text-sm font-bold text-[#111b21]">
-                                    Anda bertanggung jawab penuh atas kerahasiaan identitas akun Anda.
-                                </Typography>
+                    <section className="space-y-4">
+                        <h2 className="text-xl font-bold text-wa-dark">3. Tanggung Jawab Akun</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="p-5 rounded-2xl bg-wa-bg border border-wa-border space-y-1.5">
+                                <span className="text-xs font-semibold text-wa-green">Identifikasi</span>
+                                <p className="text-sm text-wa-dark font-medium leading-relaxed">
+                                    Kerahasiaan kata sandi web sepenuhnya berada di bawah kendali pengguna.
+                                </p>
                             </div>
-                            <div className="p-8 rounded-2xl bg-[#f0f2f5] border border-gray-100 space-y-4">
-                                <div className="text-[10px] font-bold text-[#00a884] uppercase tracking-widest opacity-60">Legalitas</div>
-                                <Typography variant="p" className="text-sm font-bold text-[#111b21]">
-                                    Semua aktivitas yang dilakukan melalui akun Anda tetap menjadi tanggung jawab hukum pribadi Anda.
-                                </Typography>
+                            <div className="p-5 rounded-2xl bg-wa-bg border border-wa-border space-y-1.5">
+                                <span className="text-xs font-semibold text-wa-green">Legalitas</span>
+                                <p className="text-sm text-wa-dark font-medium leading-relaxed">
+                                    Catatan, aktivitas, dan data keuangan terkait platform mutlak dipertanggungjawabkan kepada Anda.
+                                </p>
                             </div>
                         </div>
                     </section>
 
-                    <div className="pt-16 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <Typography variant="small" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{LEGAL_COPY.terms.last_update}</Typography>
-                        <Button asChild className="rounded-full px-10 bg-[#00a884] hover:bg-[#008f72] text-white font-bold h-12 shadow-sm">
-                            <Link to="/register" className="flex items-center gap-2">Mulai Sekarang <ArrowRight size={18} /></Link>
-                        </Button>
+                    <div className="pt-10 border-t border-wa-border flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <p className="text-xs text-wa-muted font-medium">{LEGAL_COPY.terms.last_update}</p>
+                        <Link to="/register" className="inline-flex items-center gap-2 px-6 py-3 bg-wa-green hover:bg-wa-green-dark text-white font-semibold rounded-xl transition-colors">
+                            Kembali ke Registrasi <ArrowRight size={18} />
+                        </Link>
                     </div>
                 </article>
+
             </div>
         </div>
     );

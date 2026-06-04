@@ -1,253 +1,220 @@
-import React, { useState } from 'react';
-import { 
-    Search, 
-    ChevronLeft, 
+import { useState } from 'react';
+import {
+    Search,
+    ChevronLeft,
+    ChevronRight,
     Plus,
     Key,
-    RefreshCw,
     ShieldCheck,
-    ArrowRight,
-    Lock,
-    SearchX
+    SearchX,
+    Copy,
+    Lock
 } from 'lucide-react';
-import { useLicenseRegistry } from '../../hooks/useAdminHooks';
-import { Typography } from '../../components/ui/Typography';
-import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../utils/tw.utils';
+import { useLicenseRegistry } from '@/entities/admin/model/hooks';
+import { Card, KPICard, Skeleton } from '@/shared/ui';
+import { cn } from '@/shared/lib/tw.utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { SLIDE_UP, STAGGER_CONTAINER, FADE_IN } from '../../utils/motion';
-import { ADMIN_COPY } from '../../constants/copy';
-
-interface License {
-    id: string;
-    key: string;
-    status: 'AVAILABLE' | 'CONSUMED';
-    durationMonths: number;
-    consumedBy?: string;
-}
+import { ADMIN_COPY } from '@/shared/config/copy';
+import { LicenseDTO } from '@ingetin/types';
 
 /**
- * 🚀 THE MODERN PRO LICENSE MANAGER - v9.0
- * Authority persistence & subscription gateway management.
+ * AdminLicenseManager — WhatsApp Official Style
  */
 export default function AdminLicenseManager() {
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState<'ALL' | 'AVAILABLE' | 'CONSUMED'>('ALL');
+    const [activeFilter, setActiveFilter] = useState<'ALL' | 'AVAILABLE' | 'USED'>('ALL');
 
-    const { data: licenseData, isLoading } = useLicenseRegistry(true, { 
-        page, 
+    const { data: licenseData, isLoading } = useLicenseRegistry(true, {
+        page,
         limit: 10,
         search: searchTerm,
         status: activeFilter === 'ALL' ? undefined : activeFilter
     });
-
-    const licenses = (licenseData?.items as unknown as License[]) || [];
+    
+    const licenses = licenseData?.items || [];
     const pagination = licenseData?.pagination || { totalPages: 1, total: 0 };
 
     const handleCreateLicense = () => {
         toast.promise(new Promise(res => setTimeout(res, 1500)), {
-            loading: 'Menghasilkan Kunci Otorisasi...',
-            success: 'Lisensi Berhasil Dibuat.',
-            error: 'Gagal Menghasilkan Lisensi.',
+            loading: 'Membuat lisensi baru...',
+            success: 'Lisensi berhasil dibuat.',
+            error: 'Gagal membuat lisensi.',
         });
     };
 
     return (
-        <motion.div 
-            initial="initial"
-            animate="animate"
-            variants={STAGGER_CONTAINER}
-            className="relative min-h-full pb-20 space-y-12 max-w-7xl mx-auto text-left"
-        >
-            {/* 01. INTEGRATED COMMAND HEADER */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-10 pb-12 border-b border-border">
-                <div className="space-y-6 text-left">
-                    <motion.div variants={SLIDE_UP} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary border border-border text-primary">
-                        <Lock size={12} className="text-accent" />
-                        <Typography variant="small" className="font-bold tracking-widest text-[10px] uppercase">{ADMIN_COPY.license_manager.badge}</Typography>
-                    </motion.div>
-                    
-                    <div className="space-y-3">
-                        <motion.div variants={SLIDE_UP}>
-                            <Typography variant="h1" className="text-4xl md:text-6xl font-bold tracking-tighter">{ADMIN_COPY.license_manager.title}</Typography>
-                        </motion.div>
-                        <motion.div variants={FADE_IN}>
-                            <Typography variant="p" className="max-w-xl text-muted-foreground font-medium">
-                                {ADMIN_COPY.license_manager.desc}
-                            </Typography>
-                        </motion.div>
-                    </div>
-                </div>
+        <div className="w-full space-y-6 text-left pb-24">
 
-                <motion.div variants={SLIDE_UP} className="flex items-center gap-3">
-                    <Button 
-                        onClick={handleCreateLicense}
-                        className="rounded-xl shadow-modern font-bold px-10 h-14"
-                        leftIcon={<Plus size={18} />}
-                    >
-                        {ADMIN_COPY.license_manager.btn_generate}
-                    </Button>
-                </motion.div>
+            {/* ─── Header ─── */}
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-wa-border">
+                <div className="space-y-1">
+                    <div className="inline-flex items-center gap-2 text-xs font-medium text-wa-green mb-2">
+                        <Lock size={13} strokeWidth={2} />
+                        {ADMIN_COPY.license_manager.badge}
+                    </div>
+                    <h1 className="text-2xl font-bold text-wa-dark">{ADMIN_COPY.license_manager.title}</h1>
+                    <p className="text-sm text-wa-icon mt-0.5">{ADMIN_COPY.license_manager.desc}</p>
+                </div>
+                <button
+                    onClick={handleCreateLicense}
+                    className="shrink-0 h-10 px-5 bg-wa-green text-white text-sm font-semibold rounded-xl hover:bg-wa-green-dark transition-colors inline-flex items-center gap-2 shadow-sm"
+                >
+                    <Plus size={17} strokeWidth={2.5} />
+                    {ADMIN_COPY.license_manager.btn_generate}
+                </button>
             </header>
 
-            {/* 02. DASHBOARD FILTERS & SEARCH */}
-            <div className="flex flex-col md:flex-row gap-8 items-end justify-between">
-                <div className="flex bg-secondary p-1.5 rounded-xl border border-border shadow-sm">
-                    <FilterBtn active={activeFilter === 'ALL'} onClick={() => { setActiveFilter('ALL'); setPage(1); }} label={ADMIN_COPY.license_manager.filters.all} />
-                    <FilterBtn active={activeFilter === 'AVAILABLE'} onClick={() => { setActiveFilter('AVAILABLE'); setPage(1); }} label={ADMIN_COPY.license_manager.filters.available} />
-                    <FilterBtn active={activeFilter === 'CONSUMED'} onClick={() => { setActiveFilter('CONSUMED'); setPage(1); }} label={ADMIN_COPY.license_manager.filters.consumed} />
-                </div>
+            {/* ─── Stats ─── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <KPICard title="Total Lisensi" value={pagination.total} color="#00a884" icon={Key} />
+                <KPICard title="Tersedia" value={licenses.filter(l => l.status === 'AVAILABLE').length} color="#128C7E" icon={ShieldCheck} />
+                <KPICard title="Terpakai" value={licenses.filter(l => l.status === 'USED').length} color="#667781" icon={Key} />
+                <KPICard title="Halaman" value={`${page} / ${pagination.totalPages}`} color="#25D366" icon={Key} />
+            </div>
 
-                <div className="relative w-full max-w-sm">
-                    <Input 
-                        placeholder="Cari kunci registry..."
+            {/* ─── Filter + Search ─── */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center gap-1 bg-wa-bg p-1 rounded-xl border border-wa-border">
+                    {(['ALL', 'AVAILABLE', 'USED'] as const).map(f => (
+                        <button
+                            key={f}
+                            onClick={() => { setActiveFilter(f); setPage(1); }}
+                            className={cn(
+                                'px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap',
+                                activeFilter === f
+                                    ? 'bg-white text-wa-dark shadow-wa border border-wa-border'
+                                    : 'text-wa-icon hover:text-wa-dark'
+                            )}
+                        >
+                            {ADMIN_COPY.license_manager.filters[f.toLowerCase() as 'all' | 'available' | 'consumed'] || f}
+                        </button>
+                    ))}
+                </div>
+                <div className="relative flex-1 w-full sm:max-w-xs">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-wa-icon" />
+                    <input
+                        type="text"
+                        placeholder="Cari kunci lisensi..."
                         value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                        leftIcon={<Search size={18} />}
-                        className="rounded-xl shadow-sm h-14"
+                        onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
+                        className="w-full h-10 pl-9 pr-4 bg-white border border-wa-border rounded-xl text-sm text-wa-dark placeholder:text-wa-muted focus:outline-none focus:border-wa-green focus:ring-2 focus:ring-wa-green/10 transition-all"
                     />
                 </div>
             </div>
 
-            {/* 03. KEY DIRECTORY GRID */}
-            <section className="space-y-8 text-left">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border/60">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-accent rounded-full" />
-                        <Typography variant="h2" className="text-2xl font-bold tracking-tight">{ADMIN_COPY.license_manager.directory_title}</Typography>
-                    </div>
-                    <Typography variant="small" className="font-bold text-muted-foreground/40 uppercase tracking-widest text-[9px]">
-                        {ADMIN_COPY.license_manager.op_log}: {pagination.total} {ADMIN_COPY.license_manager.keys_detected}
-                    </Typography>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <AnimatePresence mode="popLayout">
-                        {isLoading ? (
-                            Array(6).fill(0).map((_, i) => <SkeletonCard key={i} />)
-                        ) : licenses.length > 0 ? licenses.map((item, idx) => (
-                            <motion.div
-                                key={item.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ delay: idx * 0.03 }}
-                            >
-                                <LicenseCard item={item} />
-                            </motion.div>
-                        )) : (
-                            <div className="col-span-full py-40 text-center flex flex-col items-center gap-6 bg-secondary/20 rounded-2xl border border-dashed border-border px-12">
-                                <SearchX className="w-12 h-12 text-muted-foreground/20" />
-                                <Typography variant="small" className="font-bold opacity-30 uppercase tracking-[0.4em]">{ADMIN_COPY.license_manager.empty}</Typography>
+            {/* ─── License Grid ─── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <AnimatePresence mode="popLayout">
+                    {isLoading ? (
+                        Array(6).fill(0).map((_, i) => (
+                            <Skeleton key={i} className="h-48 rounded-2xl border border-wa-border" />
+                        ))
+                    ) : licenses.length > 0 ? licenses.map((item: LicenseDTO, idx: number) => (
+                        <motion.div
+                            key={item.id}
+                            layout
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ delay: idx * 0.03 }}
+                        >
+                            <LicenseCard item={item} />
+                        </motion.div>
+                    )) : (
+                        <div className="col-span-full py-24 text-center bg-white rounded-2xl border border-dashed border-wa-border">
+                            <div className="w-16 h-16 bg-wa-bg rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <SearchX size={28} className="text-wa-icon" />
                             </div>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* PAGINATION */}
-                {pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-3 pt-12">
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            disabled={page === 1} 
-                            onClick={() => setPage(p => p - 1)}
-                            className="w-12 h-12 rounded-xl border border-border"
-                        >
-                            <ChevronLeft size={18} />
-                        </Button>
-                        <div className="px-8 py-3 bg-white border border-border text-foreground rounded-xl text-[10px] font-bold tracking-widest shadow-sm">
-                            {page} / {pagination.totalPages}
+                            <p className="text-sm font-semibold text-wa-icon">{ADMIN_COPY.license_manager.empty}</p>
                         </div>
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            disabled={page >= pagination.totalPages} 
-                            onClick={() => setPage(p => p + 1)}
-                            className="w-12 h-12 rounded-xl border border-border"
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* ─── Pagination ─── */}
+            {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2 border-t border-wa-border">
+                    <span className="text-xs font-medium text-wa-muted">
+                        Halaman {page} dari {pagination.totalPages} · {pagination.total} lisensi
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="h-9 px-4 rounded-xl border border-wa-border bg-white text-wa-icon text-xs font-semibold hover:bg-wa-bg disabled:opacity-50 transition-colors flex items-center gap-1"
                         >
-                            <ArrowRight size={18} />
-                        </Button>
+                            <ChevronLeft size={14} /> Sebelum
+                        </button>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page >= pagination.totalPages}
+                            className="h-9 px-4 rounded-xl border border-wa-border bg-white text-wa-icon text-xs font-semibold hover:bg-wa-bg disabled:opacity-50 transition-colors flex items-center gap-1"
+                        >
+                            Berikutnya <ChevronRight size={14} />
+                        </button>
                     </div>
-                )}
-            </section>
-        </motion.div>
+                </div>
+            )}
+        </div>
     );
 }
 
-function LicenseCard({ item }: { item: License }) {
+/* ── License Card ── */
+function LicenseCard({ item }: { item: LicenseDTO }) {
     const isAvailable = item.status === 'AVAILABLE';
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(item.key);
+        toast.success('Kunci disalin!');
+    };
+
     return (
-        <Card className="p-8 border border-border bg-white hover:border-accent/40 transition-all group flex flex-col justify-between h-full min-h-[320px] shadow-subtle rounded-2xl relative overflow-hidden text-left" padding="none">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-700 text-accent">
-                <Key size={64} />
+        <Card className="p-5 border-wa-border shadow-wa bg-white rounded-2xl flex flex-col gap-4 hover:shadow-md transition-all">
+            {/* Status + Duration */}
+            <div className="flex items-center justify-between">
+                <span className={cn(
+                    'text-[10px] font-bold px-2.5 py-1 rounded-full border',
+                    isAvailable
+                        ? 'bg-wa-green-light text-wa-teal border-[#c0eab9]'
+                        : 'bg-wa-bg text-wa-icon border-wa-border'
+                )}>
+                    {isAvailable ? 'Tersedia' : 'Terpakai'}
+                </span>
+                <span className="text-[11px] font-semibold text-wa-icon">
+                    {item.durationMonths} bulan
+                </span>
             </div>
-            
-            <div className="space-y-6 relative z-10">
-                <div className="flex justify-between items-start">
-                    <Typography variant="small" className="font-bold text-muted-foreground/40 uppercase tracking-widest text-[9px]">{ADMIN_COPY.license_manager.card.layer}</Typography>
-                    <span className={cn(
-                        "text-[9px] font-bold px-3 py-1 rounded-lg border uppercase tracking-widest shadow-sm",
-                        isAvailable ? "bg-accent text-white border-accent" : "bg-secondary border-border text-muted-foreground/40"
-                    )}>
-                        {item.status}
-                    </span>
-                </div>
-                
-                <div className="space-y-2">
-                    <Typography variant="h3" className="text-xl font-mono font-bold tracking-tight text-foreground truncate leading-none pt-4 group-hover:text-accent transition-colors">
-                        {item.key}
-                    </Typography>
-                    <div className="flex items-center gap-2 text-muted-foreground/30">
-                        <ShieldCheck size={12} strokeWidth={2.5} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">{ADMIN_COPY.license_manager.card.persistence}: {item.durationMonths} Bulan</span>
+
+            {/* Key */}
+            <div className="flex items-center gap-2 bg-wa-bg rounded-xl px-3 py-2 border border-wa-border">
+                <Key size={14} className="text-wa-icon shrink-0" />
+                <span className="text-[13px] font-mono font-bold text-wa-dark truncate flex-1">{item.key}</span>
+                <button onClick={handleCopy} className="shrink-0 text-wa-icon hover:text-wa-green transition-colors">
+                    <Copy size={13} />
+                </button>
+            </div>
+
+            {/* Consumed by */}
+            {item.consumedBy ? (
+                <div className="flex items-center gap-3 pt-1 border-t border-wa-border">
+                    <div className="w-7 h-7 rounded-full overflow-hidden border border-wa-border bg-wa-bg shrink-0">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.consumedBy}`} alt="Avatar" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] text-wa-icon">Dipakai oleh</p>
+                        <p className="text-[13px] font-semibold text-wa-dark">@{item.consumedBy}</p>
                     </div>
                 </div>
-            </div>
-            
-            <div className="mt-12 pt-8 border-t border-border/60 space-y-5 relative z-10">
-                {item.consumedBy ? (
-                    <div className="space-y-3">
-                        <Typography variant="small" className="font-bold text-muted-foreground/30 uppercase tracking-widest text-[8px]">{ADMIN_COPY.license_manager.card.identity}</Typography>
-                        <div className="flex items-center gap-4 bg-secondary/50 p-3 rounded-xl border border-border/50">
-                            <div className="w-10 h-10 rounded-lg bg-white border border-border overflow-hidden shadow-sm">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.consumedBy}&backgroundColor=FFFFFF`} alt="User" />
-                            </div>
-                            <span className="text-xs font-bold text-foreground">@{item.consumedBy}</span>
-                        </div>
+            ) : (
+                <div className="pt-1 border-t border-wa-border">
+                    <div className="flex items-center gap-2 text-wa-green">
+                        <ShieldCheck size={13} strokeWidth={2} />
+                        <span className="text-[11px] font-semibold">Menunggu aktivasi</span>
                     </div>
-                ) : (
-                    <div className="flex flex-col gap-2">
-                       <Typography variant="small" className="font-bold text-muted-foreground/30 uppercase tracking-widest text-[8px]">Data Operasional</Typography>
-                       <div className="bg-success/5 p-4 rounded-xl border border-success/10 border-dashed">
-                          <span className="text-[10px] font-bold text-success/60 uppercase tracking-widest">{ADMIN_COPY.license_manager.card.waiting}</span>
-                       </div>
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
         </Card>
     );
-}
-
-function FilterBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string; }) {
-    return (
-        <button 
-            onClick={onClick} 
-            className={cn(
-                "px-6 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest shadow-sm", 
-                active ? "bg-white text-primary border border-border" : "text-muted-foreground/40 hover:text-muted-foreground"
-            )}
-        >
-            {label}
-        </button>
-    );
-}
-
-function SkeletonCard() {
-    return <div className="h-[320px] bg-secondary animate-pulse rounded-2xl border border-border" />;
 }
