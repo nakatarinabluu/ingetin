@@ -34,6 +34,7 @@ deploy/env/whatsapp-reminder-api.env
 *.key
 certs/
 secrets/
+LOCAL_ENV_COPY_DO_NOT_COMMIT/
 
 # IDE & Editor Specifics
 .vscode/
